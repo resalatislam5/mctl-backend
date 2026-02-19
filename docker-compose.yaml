@@ -1,0 +1,16 @@
+version: 3.0.0
+services:
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: resalat
+      MONGO_INITDB_ROOT_PASSWORD: resalat123456
+      AUTH: admin
+    ports:
+      - 27017:27017
+    volumes:
+      - 'my_mongo_db_data:/data/db'
+volumes:
+  my_mongo_db_data:
+    driver: local

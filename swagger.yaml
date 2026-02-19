@@ -1,0 +1,312 @@
+openapi: 3.0.4
+info:
+  version: 1.0.0
+  title: MTCL Global Limited
+  description: This website build for MCTL Global Limited. This a dashboard like webapp.admin can manage his business.
+  termsOfService: https://hello.com
+  contact:
+    name: Resalat Islam
+    email: resalatislam5@gmail.com
+    url: http://resalat-islam.vercel.app
+
+tags:
+  - name: Auth
+    description: login a user
+  - name: User
+    description: User Endpoints
+  - name: Role
+    description: Role Endpoints
+  - name: Module
+    description: Module Endpoints
+  - name: Student
+    description: Student Endpoints
+  - name: Money Receipt
+    description: Money Receipt Endpoints
+  - name: Account
+    description: Account Endpoints
+  - name: Batch No
+    description: Batch No Endpoints
+  - name: Course
+    description: Course Endpoints
+  - name: Agent
+    description: Agent Endpoints
+  - name: Operatoin
+    description: Operatoin Endpoints
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      description: Login a user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: idn-email
+                  example: resalatislam5@gmail.com
+                password:
+                  type: string
+                  format: password
+                  example: password1234
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: User Login Successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User login successfully
+                  data:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        format: text
+                        example: Resalat Islam
+                      email:
+                        type: string
+                        format: idn-email
+                        example: resalatislam5@gmail.com
+                      token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Invalid Email And Password
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Your Account Currenly Disable
+        '500':
+          $ref: '#/components/responses/500'
+  /config/user:
+    post:
+      tags:
+        - User
+      description: Create a New User
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Resalat Islam
+                email:
+                  type: string
+                  format: idn-email
+                  example: resalatislam5@gmail.com
+                password:
+                  type: string
+                  example: password1234
+                role_id:
+                  type: integer
+                  example: 1
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - INACTIVE
+                  example: ACTIVE
+
+      responses:
+        '200':
+          description: User Create Successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User Create Successfully
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '500':
+          $ref: '#/components/responses/500'
+    patch:
+      tags:
+        - User
+      description: User Update Successfully
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Resalat Islam
+                email:
+                  type: string
+                  format: idn-email
+                  example: resalatislam5@gmail.com
+                password:
+                  type: string
+                  example: password1234
+                role_id:
+                  type: integer
+                  example: 1
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - INACTIVE
+                  example: ACTIVE
+
+      responses:
+        '200':
+          description: User Update Successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User Update Successfully
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '500':
+          $ref: '#/components/responses/500'
+
+    get:
+      tags:
+        - User
+      description: Get All User
+      responses:
+        '200':
+          description: Get All User
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  total:
+                    type: integer
+                    example: 100
+                  # data:
+                  #   type: array
+                  #   properties:
+
+components:
+  responses:
+    '400':
+      description: Unproccess Entity
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              data:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+    '401':
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Please Login First
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: You have not the right permission
+    '500':
+      description: Server Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Internal Server Error
+  schemas:
+    TimeStamp:
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/resalat-f3f/MCTL/1.0.0
+  - description: Local Server
+    url: http://localhost:4041
