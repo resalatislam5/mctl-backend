@@ -21,6 +21,9 @@ app.use([
 ]);
 
 app.use('/api', router);
+app.get('/', (_, res) => {
+  res.json({ message: 'API running 🚀' });
+});
 app.use((_req, res: Response) => {
   res.status(404).json({
     success: false,
