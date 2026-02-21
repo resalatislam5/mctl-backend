@@ -10,15 +10,15 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
   const country_id = req.query.country_id?.toString() || '';
-
+  const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
   try {
     const [data, total] = await Promise.all([
       divisionService
-        .findAll({ search, country_id })
+        .findAll({ search, country_id, status })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
-      divisionService.count({ search, country_id }),
+      divisionService.count({ search, country_id, status }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -119,7 +119,9 @@ const deleteItem = async (
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await divisionService.findAll({}).select('name code _id');
+    const data = await divisionService
+      .findAll({ status: 'ACTIVE' })
+      .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);

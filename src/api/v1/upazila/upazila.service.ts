@@ -1,14 +1,20 @@
 import { IUpazilaFindAllParams, IUpazilaList } from './upazila.dto';
 import Upazila from './upazila.model';
 
-const findAll = ({ search = '', district_id }: IUpazilaFindAllParams) => {
+const findAll = ({
+  search = '',
+  district_id,
+  status,
+}: IUpazilaFindAllParams) => {
   const query: any = {};
 
   // district_id filter
   if (district_id) {
     query.district_id = district_id;
   }
-
+  if (status) {
+    query.status = status;
+  }
   // search filter
   if (search) {
     query.$or = [
@@ -41,7 +47,7 @@ const deleteItem = (_id: string) => {
   return Upazila.findByIdAndDelete(_id);
 };
 
-const count = ({ search, district_id }: IUpazilaFindAllParams) => {
+const count = ({ search, district_id, status }: IUpazilaFindAllParams) => {
   const query: any = {};
 
   // district_id filter
@@ -54,6 +60,10 @@ const count = ({ search, district_id }: IUpazilaFindAllParams) => {
       { name: { $regex: search, $options: 'i' } },
       { code: { $regex: search, $options: 'i' } },
     ];
+  }
+
+  if (status) {
+    query.status = status;
   }
 
   return Upazila.countDocuments(query);

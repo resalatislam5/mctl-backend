@@ -1,13 +1,18 @@
 import { createCountryTypes, ICountryFindAllParams } from './country.dto';
 import Country, { CountryType } from './country.model';
 
-const findAll = ({ search = '' }: ICountryFindAllParams) => {
-  return Country.find({
-    $or: [
+const findAll = ({ search, status }: ICountryFindAllParams) => {
+  const query: any = {};
+  if (status) {
+    query.status = status;
+  }
+  if (search) {
+    query.$or = [
       { name: { $regex: search, $options: 'i' } },
       { code: { $regex: search, $options: 'i' } },
-    ],
-  });
+    ];
+  }
+  return Country.find(query);
 };
 
 const findOne = ({ key }: { key?: Partial<CountryType> }) => {
@@ -31,7 +36,7 @@ const deleteItem = (_id: string) => {
   return Country.findByIdAndDelete(_id);
 };
 
-const count = ({ search }: ICountryFindAllParams) => {
+const count = ({ search, status }: ICountryFindAllParams) => {
   const query: any = {};
 
   // search filter
@@ -42,6 +47,9 @@ const count = ({ search }: ICountryFindAllParams) => {
     ];
   }
 
+  if (status) {
+    query.status = status;
+  }
   return Country.countDocuments(query);
 };
 

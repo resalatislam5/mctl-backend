@@ -1,27 +1,26 @@
 import { NextFunction, Request, Response } from 'express';
-import mongoose from 'mongoose';
-import { customError } from '../../../utils/customError';
-import districtService from './district.service';
-import { IDistrictList } from './district.dto';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
+import { customError } from '../../../utils/customError';
+import { IDistrictList } from './district.dto';
+import districtService from './district.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
-  const country_id = req.query.country_id?.toString() || '';
   const division_id = req.query.division_id?.toString() || '';
+  const status = (req.query.status?.toString() as 'ACTIVE' | 'INACTIVE') || '';
 
   try {
     const [data, total] = await Promise.all([
       districtService
-        .findAll({ search, country_id, division_id })
+        .findAll({ search, division_id, status })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
 
-      districtService.count({ search, country_id, division_id }),
+      districtService.count({ search, division_id, status }),
     ]);
 
     res.json({ success: true, total, data });
@@ -124,7 +123,9 @@ const deleteItem = async (
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await districtService.findAll({}).select('name code _id');
+    const data = await districtService
+      .findAll({ status: 'ACTIVE' })
+      .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);

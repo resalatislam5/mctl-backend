@@ -17,4 +17,5 @@ export interface IUpazilaList {
 export interface IUpazilaFindAllParams {
   search?: string;
   district_id?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
 }

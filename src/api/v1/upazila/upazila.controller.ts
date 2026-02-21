@@ -11,15 +11,16 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
   const district_id = req.query.district_id?.toString() || '';
+  const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
 
   try {
     const [data, total] = await Promise.all([
       upazilaService
-        .findAll({ search, district_id })
+        .findAll({ search, district_id, status })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
-      upazilaService.count({ search, district_id }),
+      upazilaService.count({ search, district_id, status }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -119,7 +120,9 @@ const deleteItem = async (
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await upazilaService.findAll({}).select('name code _id');
+    const data = await upazilaService
+      .findAll({ status: 'ACTIVE' })
+      .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);

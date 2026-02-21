@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/authenticate';
 
 const countryRoutes: Router = Router()
   .get('/', authenticate, countryController.findAll)
+  .get('/select', authenticate, countryController.findAll)
   .get('/:_id', authenticate, countryController.findSingle)
   .post('/', authenticate, countryController.create)
   .patch('/:_id', authenticate, countryController.update)

@@ -13,3 +13,9 @@ export interface IDistrictList {
   division_id: mongoose.Types.ObjectId;
   status: 'ACTIVE' | 'INACTIVE';
 }
+
+export interface IDistrictFindAllParams {
+  search?: string;
+  division_id?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
+}

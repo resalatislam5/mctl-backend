@@ -15,6 +15,6 @@ router.use('/v1/config/division', divisionRoutes);
 router.use('/v1/config/district', districtRoutes);
 router.use('/v1/config/upazila', upazilaRoutes);
 router.use('/v1/config/module', moduleRoutes);
-router.use('/v1/config/auth', authRoutes);
+router.use('/v1/auth', authRoutes);
 
 export default router;

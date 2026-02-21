@@ -1,7 +1,7 @@
 import { IDivisionFindAllParams, IDivisionList } from './division.dto';
 import Division from './division.model';
 
-const findAll = ({ search = '', country_id }: IDivisionFindAllParams) => {
+const findAll = ({ search, country_id, status }: IDivisionFindAllParams) => {
   const query: any = {};
 
   // country_id filter
@@ -16,7 +16,9 @@ const findAll = ({ search = '', country_id }: IDivisionFindAllParams) => {
       { code: { $regex: search, $options: 'i' } },
     ];
   }
-
+  if (status) {
+    query.status = status;
+  }
   return Division.find(query);
 };
 
@@ -54,6 +56,10 @@ const count = ({ search, country_id }: IDivisionFindAllParams) => {
       { name: { $regex: search, $options: 'i' } },
       { code: { $regex: search, $options: 'i' } },
     ];
+  }
+
+  if (status) {
+    query.status = status;
   }
 
   return Division.countDocuments(query);

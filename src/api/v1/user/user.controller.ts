@@ -1,10 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
-import userService from './user.service';
-import { ICreateUser, userQuery } from './user.dto';
-import { customError } from '../../../utils/customError';
 import mongoose from 'mongoose';
-import { IUser } from './user.model';
 import { RequestWithUser } from '../../../types/commonTypes';
+import { customError } from '../../../utils/customError';
+import { ICreateUser, userQuery } from './user.dto';
+import userService from './user.service';
 
 const findAll = async (
   req: RequestWithUser,

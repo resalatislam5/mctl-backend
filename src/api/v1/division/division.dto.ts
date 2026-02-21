@@ -17,4 +17,5 @@ export interface IDivisionList {
 export interface IDivisionFindAllParams {
   search?: string;
   country_id?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
 }

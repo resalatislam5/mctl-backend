@@ -1,17 +1,16 @@
-import { IDistrictList } from './district.dto';
+import { IDistrictFindAllParams, IDistrictList } from './district.dto';
 import District from './district.model';
 
-type findAllParams = {
-  search?: string;
-  country_id?: string;
-  division_id?: string;
-};
-const findAll = ({ search = '', country_id, division_id }: findAllParams) => {
+const findAll = ({
+  search = '',
+  division_id,
+  status,
+}: IDistrictFindAllParams) => {
   const query: any = {};
 
   // country_id filter
-  if (country_id) {
-    query.country_id = country_id;
+  if (status) {
+    query.status = status;
   }
   if (division_id) {
     query.division_id = division_id;
@@ -54,13 +53,13 @@ const deleteItem = (_id: string) => {
   return District.findByIdAndDelete(_id);
 };
 
-const count = ({ search, country_id, division_id }: findAllParams) => {
+const count = ({ search, division_id, status }: IDistrictFindAllParams) => {
   const query: any = {};
 
-  // country_id filter
-  if (country_id) {
-    query.country_id = country_id;
+  if (status) {
+    query.status = status;
   }
+
   if (division_id) {
     query.division_id = division_id;
   }
