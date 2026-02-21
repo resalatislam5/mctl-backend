@@ -9,12 +9,12 @@ import upazilaRoutes from './upazilaRoutes';
 import moduleRoutes from './moduleRoutes';
 
 const router: Router = Router();
-router.use('/v1/user', userRoutes);
-router.use('/v1/country', countryRoutes);
-router.use('/v1/division', divisionRoutes);
-router.use('/v1/district', districtRoutes);
-router.use('/v1/upazila', upazilaRoutes);
-router.use('/v1/module', moduleRoutes);
-router.use('/v1/auth', authRoutes);
+router.use('/v1/config/user', userRoutes);
+router.use('/v1/config/country', countryRoutes);
+router.use('/v1/config/division', divisionRoutes);
+router.use('/v1/config/district', districtRoutes);
+router.use('/v1/config/upazila', upazilaRoutes);
+router.use('/v1/config/module', moduleRoutes);
+router.use('/v1/config/auth', authRoutes);
 
 export default router;
