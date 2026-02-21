@@ -24,9 +24,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     });
 
     res.json({ success: true, data: { token: token, user: newUser } });
-    res.json(user);
   } catch (err) {
-    customError('Login failed', 500);
     next(err);
   }
 };
