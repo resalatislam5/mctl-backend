@@ -8,3 +8,7 @@ export type paginationQueryTypes = Partial<{
 export interface RequestWithUser extends Request {
   user?: any;
 }
+
+export interface IParams {
+  _id?: string;
+}

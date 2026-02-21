@@ -1,12 +1,7 @@
 import { model, Schema } from 'mongoose';
+import { ICreateUpazila } from './upazila.dto';
 
-export type CountryType = {
-  _id: string;
-  name: string;
-  code: string;
-  status: 'ACTIVE' | 'INACTIVE';
-};
-const CountrySchema = new Schema<CountryType>(
+const UpazilaSchema = new Schema<ICreateUpazila>(
   {
     name: {
       type: String,
@@ -20,6 +15,11 @@ const CountrySchema = new Schema<CountryType>(
       trim: true,
       indexes: true,
     },
+    district_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'District',
+      required: true,
+    },
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE'],
@@ -32,5 +32,5 @@ const CountrySchema = new Schema<CountryType>(
   },
 );
 
-const Country = model('Country', CountrySchema);
-export default Country;
+const Upazila = model('Upazila', UpazilaSchema);
+export default Upazila;

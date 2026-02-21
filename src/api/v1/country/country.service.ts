@@ -1,8 +1,8 @@
-import { createCountryTypes } from './country.dto';
+import { createCountryTypes, ICountryFindAllParams } from './country.dto';
 import Country, { CountryType } from './country.model';
 
-const findAll = async ({ search = '' }: { search?: string }) => {
-  return await Country.find({
+const findAll = ({ search = '' }: ICountryFindAllParams) => {
+  return Country.find({
     $or: [
       { name: { $regex: search, $options: 'i' } },
       { code: { $regex: search, $options: 'i' } },
@@ -10,18 +10,39 @@ const findAll = async ({ search = '' }: { search?: string }) => {
   });
 };
 
-const findOne = async ({ key }: { key?: Partial<CountryType> }) => {
+const findOne = ({ key }: { key?: Partial<CountryType> }) => {
   if (key?._id) {
-    return await Country.findById(key._id);
+    return Country.findById(key._id);
   }
 
-  return await Country.findOne(key);
+  return Country.findOne(key);
 };
 
-const create = async ({ name, code }: createCountryTypes) => {
+const create = ({ name, code }: createCountryTypes) => {
   const country = new Country({ name, code });
-  return await country.save();
+  return country.save();
 };
-const update = async () => {};
 
-export default { findAll, findOne, create, update };
+const update = (_id: string, data: Partial<CountryType>) => {
+  return Country.findByIdAndUpdate(_id, data, { new: true });
+};
+
+const deleteItem = (_id: string) => {
+  return Country.findByIdAndDelete(_id);
+};
+
+const count = ({ search }: ICountryFindAllParams) => {
+  const query: any = {};
+
+  // search filter
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { code: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  return Country.countDocuments(query);
+};
+
+export default { findAll, findOne, create, update, deleteItem, count };

@@ -1,12 +1,7 @@
 import { model, Schema } from 'mongoose';
+import { ICreateDistrict } from './district.dto';
 
-export type CountryType = {
-  _id: string;
-  name: string;
-  code: string;
-  status: 'ACTIVE' | 'INACTIVE';
-};
-const CountrySchema = new Schema<CountryType>(
+const DistrictSchema = new Schema<ICreateDistrict>(
   {
     name: {
       type: String,
@@ -20,6 +15,11 @@ const CountrySchema = new Schema<CountryType>(
       trim: true,
       indexes: true,
     },
+    division_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Division',
+      required: true,
+    },
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE'],
@@ -32,5 +32,5 @@ const CountrySchema = new Schema<CountryType>(
   },
 );
 
-const Country = model('Country', CountrySchema);
-export default Country;
+const District = model('District', DistrictSchema);
+export default District;
