@@ -8,9 +8,9 @@ const connectDB = async () => {
 
   try {
     await mongoose.connect(process.env.DB_URL, {
-      dbName: 'mtcl',
+      dbName: 'mctl',
       autoIndex: false,
-      appName: 'mtcl',
+      appName: 'mctl',
     });
     cached = true;
     console.log('✅ MongoDB connected');

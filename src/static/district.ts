@@ -108,9 +108,9 @@ async function seedDistrict() {
   try {
     // ✅ connect first
     await mongoose.connect('mongodb://resalat:resalat123456@localhost:27017/', {
-      dbName: 'mtcl',
+      dbName: 'mctl',
       autoIndex: false,
-      appName: 'mtcl',
+      appName: 'mctl',
     });
 
     console.log('MongoDB Connected ✅');

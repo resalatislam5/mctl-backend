@@ -40,9 +40,9 @@ async function seedDivision() {
   try {
     // ✅ connect first
     await mongoose.connect('', {
-      dbName: 'mtcl',
+      dbName: 'mctl',
       autoIndex: false,
-      appName: 'mtcl',
+      appName: 'mctl',
     });
 
     console.log('MongoDB Connected ✅');
