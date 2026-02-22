@@ -11,6 +11,7 @@ import batchRoutes from './batchRoutes';
 import courseRoutes from './courseRoutes';
 import agentRoutes from './agentRoutes';
 import packageRoutes from './packageRoutes';
+import roleRoutes from './roleRoutes';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -23,6 +24,7 @@ router.use('/v1/config/batch', batchRoutes);
 router.use('/v1/config/course', courseRoutes);
 router.use('/v1/config/agent', agentRoutes);
 router.use('/v1/config/package', packageRoutes);
+router.use('/v1/config/role', roleRoutes);
 router.use('/v1/auth', authRoutes);
 
 export default router;

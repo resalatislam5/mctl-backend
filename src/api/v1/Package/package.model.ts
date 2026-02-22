@@ -10,7 +10,7 @@ const PackageSchema = new Schema<ICreatePackage>(
       indexes: true,
     },
     course_ids: {
-      type: [mongoose.Types.ObjectId],
+      type: [mongoose.Schema.Types.ObjectId],
       required: true,
     },
     total_price: {

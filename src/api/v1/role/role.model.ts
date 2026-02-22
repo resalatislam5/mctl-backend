@@ -1,28 +1,22 @@
-import { model, Schema } from 'mongoose';
+import mongoose, { model, Schema } from 'mongoose';
+import { ICreateRole } from './role.dto';
 
-export type RoleTypes = {
-  name: string;
-  Permissions: PermissionTypes[];
-  status: 'ACTIVE' | 'INACTIVE';
-};
-
-export type PermissionTypes = {
-  can_create: boolean;
-  can_read: boolean;
-  can_update: boolean;
-  can_delete: boolean;
-};
-
-const RoleSchema = new Schema<RoleTypes>(
+const RoleSchema = new Schema<ICreateRole>(
   {
     name: {
       type: String,
       required: true,
       trim: true,
     },
-    Permissions: {
+    permissions: {
       type: [
         {
+          module_id: {
+            type: Schema.Types.ObjectId,
+            ref: 'Module',
+            required: true,
+          },
+
           can_create: { type: Boolean, default: false },
           can_read: { type: Boolean, default: false },
           can_update: { type: Boolean, default: false },
