@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { RequestWithUser } from '../../../types/commonTypes';
 import { customError } from '../../../utils/customError';
-import { ICreateUser, userQuery } from './user.dto';
+import { ICreateUser } from './user.dto';
 import userService from './user.service';
 
 const findAll = async (
@@ -10,16 +10,22 @@ const findAll = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { name, email, limit, page } = req.query as userQuery;
-  console.log('req.user', req?.user);
-
+  const search = req.query.search?.toString() || '';
+  const limit = Number(req.query.limit || 100);
+  const skip = Number(req.query.skip || 0);
+  const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
   try {
-    const users = await userService.findAllWithPagination({
-      filter: {},
-      options: {},
-      query: { limit: limit || '', page: page || '' },
-    });
-    res.json(users);
+    const [data, total] = await Promise.all([
+      userService
+        .findAll({ search, status })
+        .limit(limit)
+        .skip(skip)
+        .sort({ createdAt: -1 })
+        .select('_id name email role_id status createdAt updatedAt'),
+      userService.count({ search, status }),
+    ]);
+
+    res.json({ success: true, total, data });
   } catch (err) {
     next(err);
   }
@@ -113,8 +119,8 @@ const select = async (
   // console.log('req.user', req?.user);
 
   try {
-    const users = await userService.findAll().select('name email _id');
-    res.json(users);
+    const users = await userService.findAll({}).select('name email _id');
+    res.json({ success: true, data: users });
   } catch (err) {
     next(err);
   }

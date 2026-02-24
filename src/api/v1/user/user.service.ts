@@ -1,22 +1,21 @@
 import mongoose from 'mongoose';
-import { paginationQueryTypes } from '../../../types/commonTypes';
-import { paginate } from '../../../utils/pagination';
-import { ICreateUser, userQuery } from './user.dto';
-import User, { IUser } from './user.model';
+import { ICreateUser, IUserFindAllParams } from './user.dto';
+import User from './user.model';
 
-const findAllWithPagination = ({
-  filter,
-  query,
-  options,
-}: {
-  filter: userQuery;
-  query: paginationQueryTypes;
-  options: object;
-}) => {
-  return paginate(User, filter, query, options);
-};
-const findAll = () => {
-  return User.find();
+const findAll = ({ search, status }: IUserFindAllParams) => {
+  const query: any = {};
+
+  // search filter
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+  if (status) {
+    query.status = status;
+  }
+  return User.find(query);
 };
 
 const findOne = ({ _id, email = '' }: { _id?: string; email?: string }) => {
@@ -55,11 +54,30 @@ const deleteOne = (_id: string) => {
   return User.findByIdAndDelete(_id);
 };
 
+const count = ({ search, status }: IUserFindAllParams) => {
+  const query: any = {};
+
+  // module_id filter
+  if (status) {
+    query.status = status;
+  }
+  // search filter
+  if (search) {
+    query.$or = [{ module_id: { $regex: search, $options: 'i' } }];
+  }
+
+  if (status) {
+    query.status = status;
+  }
+
+  return User.countDocuments(query);
+};
+
 export default {
   findAll,
   create,
   deleteOne,
   findOne,
   update,
-  findAllWithPagination,
+  count,
 };

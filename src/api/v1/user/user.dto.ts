@@ -6,9 +6,9 @@ export interface ICreateUser {
   status: 'ACTIVE' | 'INACTIVE';
 }
 
-export type userQuery = Partial<{
-  name?: string;
-  email?: string;
+export type IUserFindAllParams = Partial<{
+  search?: string;
+  status: 'ACTIVE' | 'INACTIVE';
   page?: number;
   limit?: number;
 }>;

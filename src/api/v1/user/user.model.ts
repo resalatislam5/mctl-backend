@@ -15,7 +15,12 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
     // role_id: { type: Schema.Types.ObjectId, ref: 'Role', required: true },
-    role_id: String,
+    role_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+      required: true,
+      index: true,
+    },
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE'],
