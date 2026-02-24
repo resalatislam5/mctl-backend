@@ -4,6 +4,7 @@ import { customError } from '../../../utils/customError';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import roleService from './role.service';
 import { IRoleList } from './role.dto';
+import mongoose from 'mongoose';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -16,9 +17,11 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
         .findAll({ search, status })
         .limit(limit)
         .skip(skip)
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .select('_id name status createdAt updatedAt'),
       roleService.count({ search, status }),
     ]);
+
     res.json({ success: true, total, data });
   } catch (err) {
     next(err);
@@ -34,11 +37,59 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await roleService.findOne({ key: { _id: _id as string } });
-    if (!data) {
-      customError('Batch not found', 404);
-    }
-    res.json({ success: true, data });
+    // const data = await roleService.findOne({ key: { _id: _id as string } });
+    // if (!data) {
+    //   customError('Batch not found', 404);
+    // }
+    const data = await roleService.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(_id),
+        },
+      },
+
+      {
+        $unwind: {
+          path: '$permissions',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: 'modules',
+          localField: 'permissions.module_id',
+          foreignField: '_id',
+          as: 'module',
+        },
+      },
+      {
+        $unwind: {
+          path: '$module',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $addFields: {
+          'permissions.module_name': '$module.name',
+          'permissions.module_lable': '$module.lable',
+        },
+      },
+
+      // 6️⃣ regroup role
+      {
+        $group: {
+          _id: '$_id',
+          name: { $first: '$name' },
+          permissions: { $push: '$permissions' },
+          createdAt: { $first: '$createdAt' },
+          updatedAt: { $first: '$updatedAt' },
+        },
+      },
+    ]);
+
+    res.json({ success: true, data: data[0] });
   } catch (err) {
     next(err);
   }

@@ -1,3 +1,4 @@
+import { PipelineStage } from 'mongoose';
 import { ICreateRole, IRoleFindAllParams, IRoleList } from './role.dto';
 import Role from './role.model';
 
@@ -54,4 +55,16 @@ const count = ({ search, status }: IRoleFindAllParams) => {
   return Role.countDocuments(query);
 };
 
-export default { findAll, findOne, create, update, deleteItem, count };
+const aggregate = (pipeline: PipelineStage[]) => {
+  return Role.aggregate(pipeline);
+};
+
+export default {
+  findAll,
+  findOne,
+  create,
+  update,
+  deleteItem,
+  count,
+  aggregate,
+};
