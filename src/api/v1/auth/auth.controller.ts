@@ -9,10 +9,10 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body as IAuth;
   try {
     const user = await userService.findOne({ email });
-    if (!user) customError('Wrong credential', 401);
+    if (!user) customError('Wrong credential', 404);
 
     const compare = await bcrypt.compare(password, user?.password as string);
-    if (!compare) customError('Wrong credential', 401);
+    if (!compare) customError('Wrong credential', 404);
     const newUser = {
       email: user?.email,
       name: user?.name,
