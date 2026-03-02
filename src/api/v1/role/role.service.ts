@@ -7,7 +7,7 @@ const findAll = ({ search, status }: IRoleFindAllParams) => {
 
   // search filter
   if (search) {
-    query.$or = [{ module_id: { $regex: search, $options: 'i' } }];
+    query.$or = [{ name: { $regex: search, $options: 'i' } }];
   }
   if (status) {
     query.status = status;
