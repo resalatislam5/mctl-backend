@@ -2,9 +2,8 @@ import { IDivisionFindAllParams, IDivisionList } from './division.dto';
 import Division from './division.model';
 
 const findAll = ({ search, country_id, status }: IDivisionFindAllParams) => {
-  const query: any = {};
+  const query: Record<string, unknown> = {};
 
-  // country_id filter
   if (country_id) {
     query.country_id = country_id;
   }
@@ -17,8 +16,12 @@ const findAll = ({ search, country_id, status }: IDivisionFindAllParams) => {
     ];
   }
   if (status) {
-    query.status = status;
+    query.status = {
+      $regex: `^${status.trim()}$`,
+      $options: 'i', // ignore case
+    };
   }
+
   return Division.find(query);
 };
 
@@ -43,8 +46,8 @@ const deleteItem = (_id: string) => {
   return Division.findByIdAndDelete(_id);
 };
 
-const count = ({ search, country_id }: IDivisionFindAllParams) => {
-  const query: any = {};
+const count = ({ search, country_id, status }: IDivisionFindAllParams) => {
+  const query: Record<string, unknown> = {};
 
   // country_id filter
   if (country_id) {

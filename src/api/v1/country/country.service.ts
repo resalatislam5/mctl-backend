@@ -2,9 +2,9 @@ import { createCountryTypes, ICountryFindAllParams } from './country.dto';
 import Country, { CountryType } from './country.model';
 
 const findAll = ({ search, status }: ICountryFindAllParams) => {
-  const query: any = {};
+  const query: Record<string, unknown> = {};
   if (status) {
-    query.status = status;
+    query.status = status.toUpperCase();
   }
   if (search) {
     query.$or = [

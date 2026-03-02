@@ -11,6 +11,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const skip = Number(req.query.skip || 0);
   const country_id = req.query.country_id?.toString() || '';
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
+
   try {
     const [data, total] = await Promise.all([
       divisionService
@@ -118,9 +119,14 @@ const deleteItem = async (
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
+  const country_id = req.query.country_id?.toString() || '';
+
   try {
     const data = await divisionService
-      .findAll({ status: 'ACTIVE' })
+      .findAll({
+        status: 'ACTIVE',
+        country_id,
+      })
       .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {

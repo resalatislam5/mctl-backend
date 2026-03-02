@@ -1,3 +1,4 @@
+import { PipelineStage } from 'mongoose';
 import { IDistrictFindAllParams, IDistrictList } from './district.dto';
 import District from './district.model';
 
@@ -74,4 +75,16 @@ const count = ({ search, division_id, status }: IDistrictFindAllParams) => {
   return District.countDocuments(query);
 };
 
-export default { findAll, findOne, create, update, deleteItem, count };
+const aggregate = (pipeline: PipelineStage[]) => {
+  return District.aggregate(pipeline);
+};
+
+export default {
+  findAll,
+  findOne,
+  create,
+  update,
+  deleteItem,
+  count,
+  aggregate,
+};

@@ -4,6 +4,7 @@ import { checkMongooseId } from '../../../utils/checkMongooseId';
 import { customError } from '../../../utils/customError';
 import { IDistrictList } from './district.dto';
 import districtService from './district.service';
+import mongoose from 'mongoose';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -38,12 +39,36 @@ const findSingle = async (
 
   try {
     checkMongooseId(_id);
+    const objId = new mongoose.Types.ObjectId(_id);
+    const data = await districtService.aggregate([
+      { $match: { _id: objId } },
 
-    const data = await districtService.findOne({ key: { _id: _id as string } });
+      {
+        $lookup: {
+          from: 'divisions',
+          localField: 'division_id',
+          foreignField: '_id',
+          as: 'division',
+        },
+      },
+      {
+        $unwind: '$division',
+      },
+      {
+        $addFields: {
+          country_id: '$division.country_id',
+        },
+      },
+      {
+        $project: {
+          division: 0,
+        },
+      },
+    ]);
     if (!data) {
       customError('District not found', 404);
     }
-    res.json({ success: true, data });
+    res.json({ success: true, data: data[0] });
   } catch (err) {
     next(err);
   }
