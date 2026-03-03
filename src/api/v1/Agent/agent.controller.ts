@@ -45,16 +45,8 @@ const findSingle = async (
 };
 
 const create = async (req: Request, res: Response, next: NextFunction) => {
-  const {
-    name,
-    email,
-    mobile_no,
-    min_limit,
-    commission,
-    total_amount,
-    paid_amount,
-    status,
-  } = req.body as IAgentList;
+  const { name, email, mobile_no, min_limit, commission, status } =
+    req.body as IAgentList;
   try {
     const data = await agentService.create({
       name,
@@ -62,8 +54,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       mobile_no,
       min_limit,
       commission,
-      total_amount,
-      paid_amount,
       status,
     });
 
@@ -83,16 +73,8 @@ const update = async (
   next: NextFunction,
 ) => {
   const { _id } = req.params;
-  const {
-    name,
-    email,
-    mobile_no,
-    min_limit,
-    commission,
-    total_amount,
-    paid_amount,
-    status,
-  } = req.body as IAgentList;
+  const { name, email, mobile_no, min_limit, commission, status } =
+    req.body as IAgentList;
   try {
     checkMongooseId(_id);
 
@@ -102,8 +84,6 @@ const update = async (
       mobile_no,
       min_limit,
       commission,
-      total_amount,
-      paid_amount,
       status,
     });
     if (!data) customError('Agent not found', 404);

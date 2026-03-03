@@ -17,8 +17,7 @@ export interface IAgentList {
   mobile_no: string;
   min_limit: number;
   commission: number;
-  total_amount: number;
-  paid_amount: number;
+
   status: 'ACTIVE' | 'INACTIVE';
 }
 

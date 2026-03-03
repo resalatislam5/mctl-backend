@@ -34,13 +34,13 @@ const AgentSchema = new Schema<ICreateAgent>(
     },
     total_amount: {
       type: Number,
-      required: true,
       trim: true,
+      default: 0,
     },
     paid_amount: {
       type: Number,
-      required: true,
       trim: true,
+      default: 0,
     },
     status: {
       type: String,
