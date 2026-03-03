@@ -1,3 +1,4 @@
+import { PipelineStage } from 'mongoose';
 import { IUpazilaFindAllParams, IUpazilaList } from './upazila.dto';
 import Upazila from './upazila.model';
 
@@ -69,4 +70,16 @@ const count = ({ search, district_id, status }: IUpazilaFindAllParams) => {
   return Upazila.countDocuments(query);
 };
 
-export default { findAll, findOne, create, update, deleteItem, count };
+const aggregate = (pipeline: PipelineStage[]) => {
+  return Upazila.aggregate(pipeline);
+};
+
+export default {
+  findAll,
+  findOne,
+  create,
+  update,
+  deleteItem,
+  count,
+  aggregate,
+};

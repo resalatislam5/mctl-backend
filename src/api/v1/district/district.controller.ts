@@ -103,12 +103,13 @@ const update = async (
 ) => {
   try {
     const { _id } = req.params;
-    const { name, code, status } = req.body;
+    const { name, code, division_id, status } = req.body;
     checkMongooseId(_id);
 
     const data = await districtService.update(_id as string, {
       name,
       code,
+      division_id,
       status,
     });
     if (!data) customError('District not found', 404);
@@ -147,9 +148,10 @@ const deleteItem = async (
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
+  const division_id = req.query.division_id as string;
   try {
     const data = await districtService
-      .findAll({ status: 'ACTIVE' })
+      .findAll({ status: 'ACTIVE', division_id })
       .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {

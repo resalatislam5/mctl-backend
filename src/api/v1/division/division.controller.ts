@@ -72,13 +72,14 @@ const update = async (
   next: NextFunction,
 ) => {
   const { _id } = req.params;
-  const { name, code, status } = req.body;
+  const { name, code, country_id, status } = req.body;
   try {
     checkMongooseId(_id);
 
     const data = await divisionService.update(_id as string, {
       name,
       code,
+      country_id,
       status,
     });
     if (!data) customError('Division not found', 404);

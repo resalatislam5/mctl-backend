@@ -5,6 +5,8 @@ import { customError } from '../../../utils/customError';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import upazilaService from './upazila.service';
 import { IUpazilaList } from './upazila.dto';
+import mongoose from 'mongoose';
+import path from 'node:path';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -37,11 +39,65 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await upazilaService.findOne({ key: { _id: _id as string } });
+    // const data = await upazilaService.findOne({ key: { _id: _id as string } });
+    const objId = new mongoose.Types.ObjectId(_id);
+    const data = await upazilaService.aggregate([
+      {
+        $match: {
+          _id: objId,
+        },
+      },
+      {
+        $lookup: {
+          from: 'districts',
+          localField: 'district_id',
+          foreignField: '_id',
+          as: 'district',
+        },
+      },
+      {
+        $unwind: {
+          path: '$district',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          division_id: { $ifNull: ['$district.division_id', null] },
+        },
+      },
+      {
+        $lookup: {
+          from: 'divisions',
+          localField: 'division_id',
+          foreignField: '_id',
+          as: 'division',
+        },
+      },
+      {
+        $unwind: {
+          path: '$division',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          country_id: {
+            $ifNull: ['$division.country_id', null],
+          },
+        },
+      },
+      {
+        $project: {
+          division: 0,
+          district: 0,
+        },
+      },
+    ]);
     if (!data) {
       customError('Upazila not found', 404);
     }
-    res.json({ success: true, data });
+    res.json({ success: true, data: data[0] });
   } catch (err) {
     next(err);
   }
