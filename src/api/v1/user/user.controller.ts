@@ -4,6 +4,7 @@ import { RequestWithUser } from '../../../types/commonTypes';
 import { customError } from '../../../utils/customError';
 import { ICreateUser } from './user.dto';
 import userService from './user.service';
+import bcrypt from 'bcrypt';
 
 const findAll = async (
   req: RequestWithUser,
@@ -79,14 +80,19 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     }
     const findUser = await userService.findOne({ email });
     if (!findUser) customError('User Not Found', 404);
-
-    await userService.update(_id, {
+    let updateUser = {
       name,
       email,
       role_id,
       password,
       status,
-    });
+    };
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateUser.password = await bcrypt.hash(password, salt);
+    }
+
+    await userService.update(_id, updateUser);
     // delete user.password;
     res
       .status(200)
