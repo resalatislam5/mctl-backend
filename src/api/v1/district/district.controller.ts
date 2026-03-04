@@ -77,7 +77,6 @@ const findSingle = async (
 const create = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, code, division_id, status } = req.body as IDistrictList;
-    console.log(req.body);
 
     const data = await districtService.create({
       name,

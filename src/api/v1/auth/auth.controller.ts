@@ -10,6 +10,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await userService.findOne({ email });
     if (!user) customError('Wrong credential', 404);
+    if (user?.status === 'INACTIVE')
+      customError('Your account is deactivate', 403);
 
     const compare = await bcrypt.compare(password, user?.password as string);
     if (!compare) customError('Wrong credential', 404);
@@ -29,4 +31,10 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export default { login };
+const check = async (req: Request, res: Response) => {
+  const { _id, name, email, permissions } = req.user;
+
+  const result = { _id, name, email, permissions };
+  res.status(200).json({ success: true, data: result });
+};
+export default { login, check };

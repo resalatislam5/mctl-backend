@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { PipelineStage } from 'mongoose';
 import { ICreateUser, IUserFindAllParams } from './user.dto';
 import User from './user.model';
 
@@ -73,6 +73,10 @@ const count = ({ search, status }: IUserFindAllParams) => {
   return User.countDocuments(query);
 };
 
+export const aggregate = (pipeline: PipelineStage[]) => {
+  return User.aggregate(pipeline);
+};
+
 export default {
   findAll,
   create,
@@ -80,4 +84,5 @@ export default {
   findOne,
   update,
   count,
+  aggregate,
 };

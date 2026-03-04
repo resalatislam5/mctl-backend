@@ -25,6 +25,6 @@ router.use('/v1/config/course', courseRoutes);
 router.use('/v1/config/agent', agentRoutes);
 router.use('/v1/config/package', packageRoutes);
 router.use('/v1/config/role', roleRoutes);
-router.use('/v1/auth', authRoutes);
+router.use('/v1', authRoutes);
 
 export default router;

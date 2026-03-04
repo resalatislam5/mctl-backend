@@ -14,6 +14,14 @@ config();
 
 const app = express();
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any; // optional property
+    }
+  }
+}
+
 // Swagger setup
 const swaggerFile = path.join(process.cwd(), 'swagger.yaml');
 const swaggerDoc = YAML.parse(fs.readFileSync(swaggerFile, 'utf8'));
