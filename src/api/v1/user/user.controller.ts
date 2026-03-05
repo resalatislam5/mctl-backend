@@ -5,6 +5,8 @@ import { customError } from '../../../utils/customError';
 import { ICreateUser } from './user.dto';
 import userService from './user.service';
 import bcrypt from 'bcrypt';
+import auditLogService from '../auditLog/auditLog.service';
+import { detectChanges } from '../../../utils/detectChanges';
 
 const findAll = async (
   req: RequestWithUser,
@@ -53,12 +55,22 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   if (findUser) customError('User already exit', 409);
 
   try {
-    await userService.create({
+    const data = await userService.create({
       name,
       email,
       role_id,
       password,
       status,
+    });
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'User',
+      entity_id: data._id.toString(),
+      changes: { name: data.name, email: data.email },
+      description: `A new user has been created user_id: ${data?._id}`,
     });
 
     res
@@ -92,8 +104,25 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       updateUser.password = await bcrypt.hash(password, salt);
     }
 
-    await userService.update(_id, updateUser);
-    // delete user.password;
+    const data = await userService.update(_id, updateUser);
+
+    const compareChange = detectChanges(findUser?.toObject(), {
+      name: data?.name,
+      email: data?.email,
+      role_id: data?.role_id,
+      status: data?.status,
+    });
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'User',
+      entity_id: _id,
+      changes: compareChange,
+      description: `A new user has been updated user_id: ${data?._id}`,
+    });
+
     res
       .status(200)
       .json({ success: true, message: 'User update Successfully' });
@@ -109,7 +138,21 @@ const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Invalid id', 400);
     }
 
+    const findUser = await userService.findOne({ _id });
+    if (!findUser) customError('User Not Found', 404);
+
     await userService.deleteOne(_id);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'User',
+      entity_id: _id,
+      changes: findUser,
+      description: `A new user has been deleted user_id: ${_id}`,
+    });
+
     res.status(200).json({ success: true, message: 'Delete Successfully' });
   } catch (err) {
     next(err);

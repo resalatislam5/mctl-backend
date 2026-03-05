@@ -4,6 +4,8 @@ import { customError } from '../../../utils/customError';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import courseService from './course.service';
 import { ICourseList } from './course.dto';
+import auditLogService from '../auditLog/auditLog.service';
+import { detectChanges } from '../../../utils/detectChanges';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -53,6 +55,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       status,
     });
 
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'Course',
+      entity_id: data?._id?.toString() as string,
+      description: `A new course has been created course_id: ${data?._id?.toString()}`,
+    });
+
     res.json({
       success: true,
       message: 'Course created successfully',
@@ -63,22 +74,37 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const update = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   const { name, price, status } = req.body as ICourseList;
   try {
-    checkMongooseId(_id);
-
+    checkMongooseId(_id as string);
+    const findSingle = await courseService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Batch not found', 404);
+    }
     const data = await courseService.update(_id as string, {
       name,
       price,
       status,
     });
     if (!data) customError('Course not found', 404);
+
+    const compareChange = detectChanges(
+      findSingle.toObject(),
+      data?.toObject(),
+    );
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'Course',
+      entity_id: _id as string,
+      changes: compareChange,
+      description: `A new course has been updated course_id: ${_id}`,
+    });
 
     res.json({
       success: true,
@@ -90,22 +116,31 @@ const update = async (
   }
 };
 
-const deleteItem = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
-    const item = await courseService.findOne({ key: { _id: _id as string } });
-    if (!item) {
+    const findSingle = await courseService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
       return customError('Batch not found', 404);
     }
 
     await courseService.deleteItem(_id as string);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Course',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new course has been deleted course_id: ${_id}`,
+    });
+
     res.json({
       success: true,
       message: 'Batch deleted successfully',

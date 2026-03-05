@@ -1,17 +1,18 @@
 import { Router } from 'express';
 
-import countryRoutes from './countryRoutes';
-import authRoutes from './authRoutes';
-import divisionRoutes from './divisionRoutes';
-import districtRoutes from './districtRoutes';
-import userRoutes from './userRoutes';
-import upazilaRoutes from './upazilaRoutes';
-import moduleRoutes from './moduleRoutes';
-import batchRoutes from './batchRoutes';
-import courseRoutes from './courseRoutes';
 import agentRoutes from './agentRoutes';
+import auditLogRoutes from './auditLogRoutes';
+import authRoutes from './authRoutes';
+import batchRoutes from './batchRoutes';
+import countryRoutes from './countryRoutes';
+import courseRoutes from './courseRoutes';
+import districtRoutes from './districtRoutes';
+import divisionRoutes from './divisionRoutes';
+import moduleRoutes from './moduleRoutes';
 import packageRoutes from './packageRoutes';
 import roleRoutes from './roleRoutes';
+import upazilaRoutes from './upazilaRoutes';
+import userRoutes from './userRoutes';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -26,5 +27,6 @@ router.use('/v1/config/agent', agentRoutes);
 router.use('/v1/config/package', packageRoutes);
 router.use('/v1/config/role', roleRoutes);
 router.use('/v1', authRoutes);
+router.use('/v1/report/audit-log', auditLogRoutes);
 
 export default router;

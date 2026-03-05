@@ -4,6 +4,8 @@ import { customError } from '../../../utils/customError';
 import countryService from './country.service';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
+import auditLogService from '../auditLog/auditLog.service';
+import { detectChanges } from '../../../utils/detectChanges';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -50,6 +52,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await countryService.create({ name, code });
 
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'Country',
+      entity_id: data?._id.toString() as string,
+      description: `A new country has been created country_id: ${data?._id.toString()}`,
+    });
+
     res.json({
       success: true,
       message: 'Country created successfully',
@@ -60,15 +71,18 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const update = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   const { name, code, status } = req.body;
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
+
+    const findSingle = await countryService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Country not found', 404);
+    }
 
     const data = await countryService.update(_id as string, {
       name,
@@ -76,7 +90,20 @@ const update = async (
       status,
     });
 
-    if (!data) customError('Country not found', 404);
+    const compareChange = detectChanges(
+      findSingle?.toObject(),
+      data?.toObject(),
+    );
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'Country',
+      entity_id: _id as string,
+      changes: compareChange,
+      description: `A new country has been updated country_id: ${_id}`,
+    });
 
     res.json({
       success: true,
@@ -88,20 +115,28 @@ const update = async (
   }
 };
 
-const deleteItem = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
-    const item = await countryService.findOne({ key: { _id: _id as string } });
-    if (!item) {
+    const findSingle = await countryService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
       return customError('Country not found', 404);
     }
     await countryService.deleteItem(_id as string);
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Country',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new country has been created country_id: ${_id}`,
+    });
+
     res.json({
       success: true,
       message: 'Country deleted successfully',

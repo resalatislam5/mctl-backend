@@ -5,6 +5,7 @@ import { checkMongooseId } from '../../../utils/checkMongooseId';
 import roleService from './role.service';
 import { IRoleList } from './role.dto';
 import mongoose from 'mongoose';
+import auditLogService from '../auditLog/auditLog.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -104,6 +105,16 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       status,
     });
 
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'Role',
+      entity_id: data?._id.toString(),
+      changes: data,
+      description: `A new role has been created role_id: ${data?._id}`,
+    });
+
     res.json({
       success: true,
       message: 'Role created successfully',
@@ -114,22 +125,28 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const update = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   const { name, permissions, status } = req.body as IRoleList;
   try {
-    checkMongooseId(_id);
-
+    checkMongooseId(_id as string);
+    const findSingle = roleService.findOne({ _id: _id as string });
+    if (!findSingle) customError('Role not found', 404);
     const data = await roleService.update(_id as string, {
       name,
       permissions,
       status,
     });
-    if (!data) customError('Role not found', 404);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'Role',
+      entity_id: _id as string,
+      changes: data,
+      description: `A new role has been updated role_id: ${_id}`,
+    });
 
     res.json({
       success: true,
@@ -141,22 +158,29 @@ const update = async (
   }
 };
 
-const deleteItem = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
-    const item = await roleService.findOne({ key: { _id: _id as string } });
-    if (!item) {
+    const findSingle = await roleService.findOne({ _id: _id as string });
+    if (!findSingle) {
       return customError('Batch not found', 404);
     }
 
     await roleService.deleteItem(_id as string);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Role',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new role has been deleted role_id: ${_id}`,
+    });
+
     res.json({
       success: true,
       message: 'Batch deleted successfully',

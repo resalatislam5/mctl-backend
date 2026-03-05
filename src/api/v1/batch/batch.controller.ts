@@ -5,6 +5,8 @@ import { customError } from '../../../utils/customError';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import batchService from './batch.service';
 import { IBatchList } from './batch.dto';
+import auditLogService from '../auditLog/auditLog.service';
+import { detectChanges } from '../../../utils/detectChanges';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -53,6 +55,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       status,
     });
 
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'Batch',
+      entity_id: data?._id?.toString() as string,
+      description: `A new batch has been created batch_id: ${data?._id?.toString()}`,
+    });
+
     res.json({
       success: true,
       message: 'Batch created successfully',
@@ -63,21 +74,36 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const update = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   const { batch_no, status } = req.body as IBatchList;
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
+    const findSingle = await batchService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Batch not found', 404);
+    }
 
     const data = await batchService.update(_id as string, {
       batch_no,
       status,
     });
-    if (!data) customError('Batch not found', 404);
+
+    const compareChange = detectChanges(
+      findSingle.toObject(),
+      data?.toObject(),
+    );
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'Batch',
+      entity_id: _id as string,
+      changes: compareChange,
+      description: `A new batch has been updated batch_id: ${_id}`,
+    });
 
     res.json({
       success: true,
@@ -89,22 +115,30 @@ const update = async (
   }
 };
 
-const deleteItem = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
-    const item = await batchService.findOne({ key: { _id: _id as string } });
-    if (!item) {
+    const findSingle = await batchService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
       return customError('Batch not found', 404);
     }
 
     await batchService.deleteItem(_id as string);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Batch',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new batch has been deleted batch_id: ${_id}`,
+    });
     res.json({
       success: true,
       message: 'Batch deleted successfully',

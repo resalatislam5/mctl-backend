@@ -4,6 +4,8 @@ import { customError } from '../../../utils/customError';
 import { IDivisionList } from './division.dto';
 import divisionService from './division.service';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
+import auditLogService from '../auditLog/auditLog.service';
+import { detectChanges } from '../../../utils/detectChanges';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -56,6 +58,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       status,
     });
 
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'Division',
+      entity_id: data?._id?.toString() as string,
+      description: `A new country has been created country_id: ${data?._id?.toString()}`,
+    });
+
     res.json({
       success: true,
       message: 'Division created successfully',
@@ -66,15 +77,18 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const update = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   const { name, code, country_id, status } = req.body;
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
+
+    const findSingle = await divisionService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Division not found', 404);
+    }
 
     const data = await divisionService.update(_id as string, {
       name,
@@ -82,7 +96,23 @@ const update = async (
       country_id,
       status,
     });
-    if (!data) customError('Division not found', 404);
+    console.log(data);
+
+    const compareChange = detectChanges(
+      findSingle.toObject(),
+      data?.toObject(),
+    );
+    console.log(compareChange);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'Division',
+      entity_id: _id as string,
+      changes: compareChange,
+      description: `A new division has been updated division_id: ${_id}`,
+    });
 
     res.json({
       success: true,
@@ -94,22 +124,30 @@ const update = async (
   }
 };
 
-const deleteItem = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
-    const item = await divisionService.findOne({ key: { _id: _id as string } });
-    if (!item) {
+    const findSingle = await divisionService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
       return customError('Division not found', 404);
     }
 
     await divisionService.deleteItem(_id as string);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Division',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new division has been deleted division_id: ${_id}`,
+    });
     res.json({
       success: true,
       message: 'Division deleted successfully',

@@ -15,7 +15,7 @@ const findAll = ({ search, status }: IRoleFindAllParams) => {
   return Role.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IRoleList> }) => {
+const findOne = (key: Partial<IRoleList>) => {
   if (key?._id) {
     return Role.findById(key._id);
   }

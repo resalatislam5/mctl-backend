@@ -39,14 +39,17 @@ const update = (
   _id: string,
   { email, name, password, role_id, status }: ICreateUser,
 ) => {
-  return User.updateOne(
-    { _id },
+  return User.findByIdAndUpdate(
+    _id,
     {
       email,
       name,
       password,
       role_id: new mongoose.Types.ObjectId(role_id),
       status,
+    },
+    {
+      new: true,
     },
   );
 };

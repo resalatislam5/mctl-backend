@@ -5,8 +5,8 @@ const userRoutes: Router = Router()
   .get('/', authenticate, userController.findAll)
   .get('/select', authenticate, userController.select)
   .get('/:_id', authenticate, userController.findOne)
-  .post('/', userController.create)
-  .patch('/:_id', userController.update)
-  .delete('/:_id', userController.deleteOne);
+  .post('/', authenticate, userController.create)
+  .patch('/:_id', authenticate, userController.update)
+  .delete('/:_id', authenticate, userController.deleteOne);
 
 export default userRoutes;
