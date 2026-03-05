@@ -1,4 +1,4 @@
-import { aggregate } from './../user/user.service';
+import { aggregate } from '../user/user.service';
 import { NextFunction, Request, Response } from 'express';
 import { IParams } from '../../../types/commonTypes';
 import { customError } from '../../../utils/customError';

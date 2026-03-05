@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import packageController from '../api/v1/package/package.controller';
+import packageController from '../api/v1/package_new/package.controller';
 import { authenticate } from '../middleware/authenticate';
 
 const packageRoutes: Router = Router()
