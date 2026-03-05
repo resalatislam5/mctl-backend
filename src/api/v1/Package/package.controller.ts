@@ -1,9 +1,13 @@
+import { aggregate } from './../user/user.service';
 import { NextFunction, Request, Response } from 'express';
 import { IParams } from '../../../types/commonTypes';
 import { customError } from '../../../utils/customError';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import packageService from './package.service';
 import { IPackageList } from './package.dto';
+import auditLogService from '../auditLog/auditLog.service';
+import { detectChanges } from '../../../utils/detectChanges';
+import mongoose, { Mongoose } from 'mongoose';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -34,11 +38,50 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await packageService.findOne({ key: { _id: _id as string } });
-    if (!data) {
-      customError('Batch not found', 404);
+    const objId = new mongoose.Types.ObjectId(_id);
+    const data = await packageService.aggregate([
+      { $match: { _id: objId } },
+
+      {
+        $addFields: {
+          course_ids: {
+            $map: {
+              input: '$course_ids',
+              as: 'id',
+              in: { $toObjectId: '$$id' },
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'courses',
+          localField: 'course_ids',
+          foreignField: '_id',
+          as: 'courses',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          course_ids: 1,
+          total_price: 1,
+          net_price: 1,
+          discount: 1,
+          additional_discount: 1,
+          status: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          courses: { _id: 1, name: 1 },
+        },
+      },
+    ]);
+
+    if (!data[0]) {
+      customError('Package not found', 404);
     }
-    res.json({ success: true, data });
+    res.json({ success: true, data: data[0] });
   } catch (err) {
     next(err);
   }
@@ -65,6 +108,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       status,
     });
 
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'CREATE',
+      entity: 'Package',
+      entity_id: data?._id?.toString() as string,
+      description: `A new package has been created package_id: ${data?._id?.toString()}`,
+    });
+
     res.json({
       success: true,
       message: 'Package created successfully',
@@ -75,11 +127,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const update = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
   const {
     name,
@@ -90,8 +138,14 @@ const update = async (
     status,
   } = req.body as IPackageList;
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
+    const findSingle = await packageService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Package not found', 404);
+    }
     const data = await packageService.update(_id as string, {
       name,
       total_price,
@@ -100,7 +154,21 @@ const update = async (
       additional_discount,
       status,
     });
-    if (!data) customError('Package not found', 404);
+
+    const compareChange = detectChanges(
+      findSingle.toObject(),
+      data?.toObject(),
+    );
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Package',
+      entity_id: _id as string,
+      changes: compareChange,
+      description: `A new package has been deleted package_id: ${_id}`,
+    });
 
     res.json({
       success: true,
@@ -112,22 +180,31 @@ const update = async (
   }
 };
 
-const deleteItem = async (
-  req: Request<IParams>,
-  res: Response,
-  next: NextFunction,
-) => {
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
   try {
-    checkMongooseId(_id);
+    checkMongooseId(_id as string);
 
-    const item = await packageService.findOne({ key: { _id: _id as string } });
-    if (!item) {
+    const findSingle = await packageService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
       return customError('Package not found', 404);
     }
 
     await packageService.deleteItem(_id as string);
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Package',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new package has been deleted package_id: ${_id}`,
+    });
+
     res.json({
       success: true,
       message: 'Package deleted successfully',

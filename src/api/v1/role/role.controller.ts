@@ -38,10 +38,6 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    // const data = await roleService.findOne({ key: { _id: _id as string } });
-    // if (!data) {
-    //   customError('Batch not found', 404);
-    // }
     const data = await roleService.aggregate([
       {
         $match: {
@@ -90,6 +86,9 @@ const findSingle = async (
       },
     ]);
 
+    if (!data[0]) {
+      customError('Course not found', 404);
+    }
     res.json({ success: true, data: data[0] });
   } catch (err) {
     next(err);
@@ -166,7 +165,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
     const findSingle = await roleService.findOne({ _id: _id as string });
     if (!findSingle) {
-      return customError('Batch not found', 404);
+      return customError('Role not found', 404);
     }
 
     await roleService.deleteItem(_id as string);

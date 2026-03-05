@@ -38,7 +38,7 @@ const findSingle = async (
 
     const data = await courseService.findOne({ key: { _id: _id as string } });
     if (!data) {
-      customError('Batch not found', 404);
+      customError('Course not found', 404);
     }
     res.json({ success: true, data });
   } catch (err) {
@@ -83,7 +83,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       key: { _id: _id as string },
     });
     if (!findSingle) {
-      return customError('Batch not found', 404);
+      return customError('Course not found', 404);
     }
     const data = await courseService.update(_id as string, {
       name,
@@ -126,7 +126,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       key: { _id: _id as string },
     });
     if (!findSingle) {
-      return customError('Batch not found', 404);
+      return customError('Course not found', 404);
     }
 
     await courseService.deleteItem(_id as string);

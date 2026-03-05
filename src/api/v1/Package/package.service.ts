@@ -1,3 +1,4 @@
+import { PipelineStage } from 'mongoose';
 import { IPackageFindAllParams, IPackageList } from './package.dto';
 import Package from './package.model';
 
@@ -70,4 +71,15 @@ const count = ({ search, status }: IPackageFindAllParams) => {
   return Package.countDocuments(query);
 };
 
-export default { findAll, findOne, create, update, deleteItem, count };
+const aggregate = (pipeline: PipelineStage[]) => {
+  return Package.aggregate(pipeline);
+};
+export default {
+  findAll,
+  findOne,
+  create,
+  update,
+  deleteItem,
+  count,
+  aggregate,
+};

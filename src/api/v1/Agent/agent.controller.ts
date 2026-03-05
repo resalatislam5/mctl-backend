@@ -38,7 +38,7 @@ const findSingle = async (
 
     const data = await agentService.findOne({ key: { _id: _id as string } });
     if (!data) {
-      customError('Batch not found', 404);
+      customError('Agent not found', 404);
     }
     res.json({ success: true, data });
   } catch (err) {
