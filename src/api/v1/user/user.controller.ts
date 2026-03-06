@@ -165,7 +165,6 @@ const select = async (
   next: NextFunction,
 ) => {
   // const { name, email, limit, page } = req.query as userQuery;
-  // console.log('req.user', req?.user);
 
   try {
     const users = await userService.findAll({}).select('name email _id');

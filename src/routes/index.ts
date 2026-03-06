@@ -13,6 +13,7 @@ import packageRoutes from './packageRoutes';
 import roleRoutes from './roleRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
+import studentRoutes from './studentRoutes';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -27,6 +28,7 @@ router.use('/v1/config/agent', agentRoutes);
 router.use('/v1/config/package', packageRoutes);
 router.use('/v1/config/role', roleRoutes);
 router.use('/v1', authRoutes);
+router.use('/v1/student', studentRoutes);
 router.use('/v1/report/audit-log', auditLogRoutes);
 
 export default router;

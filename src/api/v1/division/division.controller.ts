@@ -96,13 +96,11 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       country_id,
       status,
     });
-    console.log(data);
 
     const compareChange = detectChanges(
       findSingle.toObject(),
       data?.toObject(),
     );
-    console.log(compareChange);
 
     await auditLogService.create({
       req,
