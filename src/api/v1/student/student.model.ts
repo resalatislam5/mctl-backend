@@ -26,6 +26,7 @@ const StudentSchema = new Schema<ICreateStudent>(
 
     nid_no: { type: String },
     co_mobile: { type: String },
+    mobile_no: { type: String },
     relationship: { type: String },
     education: { type: String },
     image_public_id: { type: String },
