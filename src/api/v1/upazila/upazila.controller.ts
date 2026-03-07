@@ -213,9 +213,10 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
+  const district_id = req.query.district_id?.toString() || '';
   try {
     const data = await upazilaService
-      .findAll({ status: 'ACTIVE' })
+      .findAll({ status: 'ACTIVE', district_id })
       .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {
