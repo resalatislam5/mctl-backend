@@ -8,10 +8,10 @@ const StudentSchema = new Schema<ICreateStudent>(
     code: { type: String, trim: true },
     image: { type: String },
 
-    country_id: { type: Schema.Types.ObjectId },
-    division_id: { type: Schema.Types.ObjectId },
-    district_id: { type: Schema.Types.ObjectId },
-    upazila_id: { type: Schema.Types.ObjectId },
+    country_id: { type: Schema.Types.ObjectId, ref: 'Country' },
+    division_id: { type: Schema.Types.ObjectId, ref: 'Division' },
+    district_id: { type: Schema.Types.ObjectId, ref: 'District' },
+    upazila_id: { type: Schema.Types.ObjectId, ref: 'Upazila' },
     village: { type: String },
     nationality: { type: String },
 

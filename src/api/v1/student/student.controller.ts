@@ -365,7 +365,7 @@ const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await studentService
       .findAll({ status: 'ACTIVE' })
-      .select('name price _id');
+      .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);
