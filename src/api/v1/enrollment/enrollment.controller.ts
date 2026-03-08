@@ -118,9 +118,9 @@ const findSingle = async (
       {
         $lookup: {
           from: 'courses',
-          localField: 'course_ids',
+          localField: 'courses.course_id',
           foreignField: '_id',
-          as: 'courses',
+          as: 'course_details',
         },
       },
 
@@ -128,7 +128,7 @@ const findSingle = async (
         $addFields: {
           course_names: {
             $map: {
-              input: '$courses',
+              input: '$course_details',
               as: 'course',
               in: '$$course.name',
             },
@@ -136,8 +136,77 @@ const findSingle = async (
         },
       },
       {
+        $lookup: {
+          from: 'batches',
+          localField: 'batch_id',
+          foreignField: '_id',
+          as: 'batch_details',
+        },
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'student_info.country_id',
+          foreignField: '_id',
+          as: 'country',
+        },
+      },
+      {
+        $lookup: {
+          from: 'divisions',
+          localField: 'student_info.division_id',
+          foreignField: '_id',
+          as: 'division',
+        },
+      },
+      {
+        $lookup: {
+          from: 'districts',
+          localField: 'student_info.district_id',
+          foreignField: '_id',
+          as: 'district',
+        },
+      },
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'student_info.upazila_id',
+          foreignField: '_id',
+          as: 'upazila',
+        },
+      },
+
+      {
+        $unwind: {
+          path: '$batch_details',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          batch_no: { $ifNull: ['$batch_details.batch_no', null] },
+          'student_info.country_name': {
+            $ifNull: [{ $arrayElemAt: ['$country.name', 0] }, null],
+          },
+          'student_info.division_name': {
+            $ifNull: [{ $arrayElemAt: ['$division.name', 0] }, null],
+          },
+          'student_info.district_name': {
+            $ifNull: [{ $arrayElemAt: ['$district.name', 0] }, null],
+          },
+          'student_info.upazila_name': {
+            $ifNull: [{ $arrayElemAt: ['$upazila.name', 0] }, null],
+          },
+        },
+      },
+      {
         $project: {
-          courses: 0,
+          course_details: 0,
+          batch_details: 0,
+          country: 0,
+          division: 0,
+          district: 0,
+          upazila: 0,
         },
       },
     ]);
@@ -167,6 +236,8 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     course_type,
     package_id,
     course_ids,
+    agent_id,
+    installment_type,
   } = req.body as IEnrollmentList;
   try {
     const code = await generateCode('enrollment', 'ENR');
@@ -182,6 +253,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           status: 'NO',
           soft_copy: 'NO',
         })) || [];
+      console.log('new course', newCourses);
     }
 
     if (course_type === 'SPECIFIC') {
@@ -210,6 +282,8 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       course_type,
       package_id,
       course_ids,
+      agent_id,
+      installment_type,
     });
 
     await auditLogService.create({
@@ -249,6 +323,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     course_type,
     package_id,
     course_ids,
+    agent_id,
+    installment_type,
   } = (req?.body || {}) as IEnrollmentList;
 
   try {
@@ -319,6 +395,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       course_type,
       package_id,
       course_ids: course_type === 'SPECIFIC' ? course_ids : [],
+      agent_id,
+      installment_type,
     });
 
     const compareChange = detectChanges(
@@ -329,7 +407,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     await auditLogService.create({
       req,
       user: req.user,
-      action: 'DELETE',
+      action: 'UPDATE',
       entity: 'Enrollment',
       entity_id: _id as string,
       changes: compareChange,

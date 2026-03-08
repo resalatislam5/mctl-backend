@@ -36,6 +36,8 @@ const create = ({
   course_type,
   package_id,
   course_ids,
+  agent_id,
+  installment_type,
 }: IEnrollmentList) => {
   const pkg = new Enrollment({
     additional_discount,
@@ -53,6 +55,8 @@ const create = ({
     course_type,
     package_id,
     course_ids,
+    agent_id,
+    installment_type,
   });
   return pkg.save();
 };

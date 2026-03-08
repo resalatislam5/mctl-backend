@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 export interface ICreateEnrollment extends Document {
   student_id: Types.ObjectId;
   batch_id: Types.ObjectId;
+  agent_id: Types.ObjectId;
   code: string;
   admission_date: Date;
   courses: {
@@ -10,6 +11,7 @@ export interface ICreateEnrollment extends Document {
     status: 'YES' | 'NO';
     soft_copy: 'YES' | 'NO';
   }[];
+  installment_type: 'YES' | 'NO';
   course_ids: Types.ObjectId[];
   course_mode: 'ONLINE' | 'OFFLINE';
   total_price: string;
@@ -26,6 +28,7 @@ export interface IEnrollmentList {
   code: string;
   student_id: Types.ObjectId;
   batch_id: Types.ObjectId;
+  agent_id: Types.ObjectId;
   admission_date: Date;
   course_ids: Types.ObjectId[];
   courses: {
@@ -34,6 +37,7 @@ export interface IEnrollmentList {
     soft_copy: 'YES' | 'NO';
   }[];
   course_mode: 'ONLINE' | 'OFFLINE';
+  installment_type: 'YES' | 'NO';
   course_type: 'SPECIFIC' | 'PACKAGE';
   package_id: Types.ObjectId;
   total_price: string;

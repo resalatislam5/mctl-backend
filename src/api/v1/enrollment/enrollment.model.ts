@@ -8,6 +8,15 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
       required: true,
       schema: 'Student',
     },
+    agent_id: {
+      type: Types.ObjectId,
+      required: true,
+      schema: 'Agent',
+    },
+    installment_type: {
+      type: String,
+      enum: ['YES', 'NO'],
+    },
     code: {
       type: String,
       unique: true,

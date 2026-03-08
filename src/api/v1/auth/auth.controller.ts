@@ -4,6 +4,7 @@ import userService from '../user/user.service';
 import { customError } from '../../../utils/customError';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import auditLogService from '../auditLog/auditLog.service';
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body as IAuth;
@@ -23,6 +24,15 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     const token = jwt.sign(newUser, process.env.JTW_PASSWORD as string, {
       // algorithm: 'RS256',
       expiresIn: '24h',
+    });
+
+    await auditLogService.create({
+      req,
+      user: user,
+      action: 'LOGIN',
+      entity: 'Enrollment',
+      entity_id: user?._id?.toString() as string,
+      description: `User login detected. User ID: ${user?._id?.toString()}`,
     });
 
     res.json({ success: true, data: { token: token, user: newUser } });
