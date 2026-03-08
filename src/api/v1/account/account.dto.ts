@@ -1,4 +1,4 @@
-import mongoose, { Document } from 'mongoose';
+import { Document } from 'mongoose';
 
 export interface ICreateAccount extends Document {
   account_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';

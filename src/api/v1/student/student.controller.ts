@@ -1,16 +1,15 @@
-import { aggregate } from '../user/user.service';
-import { NextFunction, Request, Response } from 'express';
-import { IParams } from '../../../types/commonTypes';
-import { customError } from '../../../utils/customError';
-import { checkMongooseId } from '../../../utils/checkMongooseId';
-import streamifier from 'streamifier';
-import auditLogService from '../auditLog/auditLog.service';
-import { detectChanges } from '../../../utils/detectChanges';
-import mongoose, { Mongoose } from 'mongoose';
-import studentService from './student.service';
-import { IStudentList } from './student.dto';
-import cloudinary from '../../../config/cloudinary.config';
 import { UploadApiResponse } from 'cloudinary';
+import { NextFunction, Request, Response } from 'express';
+import mongoose from 'mongoose';
+import streamifier from 'streamifier';
+import cloudinary from '../../../config/cloudinary.config';
+import { IParams } from '../../../types/commonTypes';
+import { checkMongooseId } from '../../../utils/checkMongooseId';
+import { customError } from '../../../utils/customError';
+import { detectChanges } from '../../../utils/detectChanges';
+import auditLogService from '../auditLog/auditLog.service';
+import { IStudentList } from './student.dto';
+import studentService from './student.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -24,7 +23,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 })
-        .select('name email code mobile_no gender nid_no status'),
+        .select('name email code mobile_no gender nid_no status createdAt'),
       studentService.count({ search, status }),
     ]);
     res.json({ success: true, total, data });

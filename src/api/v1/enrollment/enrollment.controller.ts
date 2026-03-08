@@ -72,6 +72,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
                 course_mode: 1,
                 total_amount: 1,
                 total_paid: 1,
+                admission_date: 1,
               },
             },
           ],
