@@ -1,27 +1,26 @@
 import { NextFunction, Request, Response } from 'express';
 import { IParams } from '../../../types/commonTypes';
-import { customError } from '../../../utils/customError';
-import { IDivisionList } from './division.dto';
-import divisionService from './division.service';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
-import auditLogService from '../auditLog/auditLog.service';
+import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
+import auditLogService from '../auditLog/auditLog.service';
+import accountService from './account.service';
+import { IAccountFindAllParams, IAccountList } from './account.dto';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
-  const country_id = req.query.country_id?.toString() || '';
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
 
   try {
     const [data, total] = await Promise.all([
-      divisionService
-        .findAll({ search, country_id, status })
+      accountService
+        .findAll({ search, status })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
-      divisionService.count({ search, country_id, status }),
+      accountService.count({ search, status }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -38,9 +37,9 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await divisionService.findOne({ key: { _id: _id as string } });
+    const data = await accountService.findOne({ key: { _id: _id as string } });
     if (!data) {
-      customError('Division not found', 404);
+      customError('Account not found', 404);
     }
     res.json({ success: true, data });
   } catch (err) {
@@ -49,12 +48,24 @@ const findSingle = async (
 };
 
 const create = async (req: Request, res: Response, next: NextFunction) => {
-  const { name, code, country_id, status } = req.body as IDivisionList;
+  const {
+    name,
+    acc_number,
+    account_type,
+    bank_name,
+    branch_name,
+    opening_balance,
+    status,
+  } = req.body as IAccountList;
   try {
-    const data = await divisionService.create({
+    const data = await accountService.create({
       name,
-      code,
-      country_id,
+      acc_number,
+      account_type,
+      bank_name,
+      branch_name,
+      opening_balance,
+      available_balance: opening_balance,
       status,
     });
 
@@ -62,14 +73,14 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       req,
       user: req.user,
       action: 'CREATE',
-      entity: 'Division',
+      entity: 'Account',
       entity_id: data?._id?.toString() as string,
-      description: `A new division has been created division_id: ${data?._id?.toString()}`,
+      description: `A new account has been created account_id: ${data?._id?.toString()}`,
     });
 
     res.json({
       success: true,
-      message: 'Division created successfully',
+      message: 'Account created successfully',
       data,
     });
   } catch (err) {
@@ -79,21 +90,55 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
 
 const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
-  const { name, code, country_id, status } = req.body;
+  const {
+    acc_number,
+    account_type,
+    bank_name,
+    branch_name,
+    opening_balance,
+    name,
+    status,
+  } = req.body as IAccountList;
+
   try {
     checkMongooseId(_id as string);
 
-    const findSingle = await divisionService.findOne({
+    const findSingle = await accountService.findOne({
       key: { _id: _id as string },
     });
     if (!findSingle) {
-      return customError('Division not found', 404);
+      return customError('Account not found', 404);
+    }
+    let available_balance = opening_balance;
+    if (
+      Number(opening_balance || 0) > Number(findSingle.opening_balance || 0)
+    ) {
+      let new_available_balance =
+        Number(opening_balance) - Number(findSingle.opening_balance);
+
+      available_balance = (
+        Number(findSingle.opening_balance) + new_available_balance
+      ).toFixed(2);
+    }
+    if (
+      Number(opening_balance || 0) < Number(findSingle.opening_balance || 0)
+    ) {
+      let new_available_balance =
+        Number(findSingle.opening_balance) - Number(opening_balance);
+
+      available_balance = (
+        Number(findSingle.opening_balance) - new_available_balance
+      ).toFixed(2);
     }
 
-    const data = await divisionService.update(_id as string, {
+    const data = await accountService.update(_id as string, {
+      acc_number,
+      account_type,
+      bank_name,
+      branch_name,
+      opening_balance,
+      available_balance,
       name,
-      code,
-      country_id,
       status,
     });
 
@@ -106,15 +151,15 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       req,
       user: req.user,
       action: 'UPDATE',
-      entity: 'Division',
+      entity: 'Account',
       entity_id: _id as string,
       changes: compareChange,
-      description: `A new division has been updated division_id: ${_id}`,
+      description: `A new account has been updated account_id: ${_id}`,
     });
 
     res.json({
       success: true,
-      message: 'Division updated successfully',
+      message: 'Account updated successfully',
       data: data,
     });
   } catch (err) {
@@ -128,27 +173,27 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   try {
     checkMongooseId(_id as string);
 
-    const findSingle = await divisionService.findOne({
+    const findSingle = await accountService.findOne({
       key: { _id: _id as string },
     });
     if (!findSingle) {
-      return customError('Division not found', 404);
+      return customError('Account not found', 404);
     }
 
-    await divisionService.deleteItem(_id as string);
+    await accountService.deleteItem(_id as string);
 
     await auditLogService.create({
       req,
       user: req.user,
       action: 'DELETE',
-      entity: 'Division',
+      entity: 'Account',
       entity_id: _id as string,
       changes: findSingle,
-      description: `A new division has been deleted division_id: ${_id}`,
+      description: `A new account has been deleted account_id: ${_id}`,
     });
     res.json({
       success: true,
-      message: 'Division deleted successfully',
+      message: 'Account deleted successfully',
     });
   } catch (err) {
     next(err);
@@ -156,13 +201,13 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
-  const country_id = req.query.country_id?.toString() || '';
+  const account_type = req.query.account_type?.toString() || '';
 
   try {
-    const data = await divisionService
+    const data = await accountService
       .findAll({
         status: 'ACTIVE',
-        country_id,
+        account_type: account_type,
       })
       .select('name code _id');
     res.json({ success: true, data });
