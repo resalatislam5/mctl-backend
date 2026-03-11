@@ -6,8 +6,8 @@ export interface ICreateAgent extends Document {
   mobile_no: string;
   min_limit: number;
   commission: number;
-  total_amount: number;
-  paid_amount: number;
+  total_amount: string;
+  paid_amount: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
 export interface IAgentList {
@@ -17,7 +17,8 @@ export interface IAgentList {
   mobile_no: string;
   min_limit: number;
   commission: number;
-
+  total_amount?: string;
+  paid_amount?: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
 

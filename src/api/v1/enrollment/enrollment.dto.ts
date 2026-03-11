@@ -50,4 +50,5 @@ export interface IEnrollmentList {
 
 export interface IEnrollmentFindAllParams {
   search?: string;
+  student_id?: string;
 }

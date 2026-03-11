@@ -460,8 +460,11 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
+  const student_id = req.query?.student_id?.toString() || '';
   try {
-    const data = await enrollmentService.findAll({}).select('name code _id');
+    const data = await enrollmentService
+      .findAll({ student_id })
+      .select('total_amount paid_amount code _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);

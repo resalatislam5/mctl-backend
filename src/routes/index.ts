@@ -16,6 +16,7 @@ import studentRoutes from './studentRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
 import accountRoutes from './accountRoutes';
+import moneyReceiptRoutes from './moneyReceipt';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -33,6 +34,7 @@ router.use('/v1', authRoutes);
 router.use('/v1/student', studentRoutes);
 router.use('/v1/enrollment', enrollmentRoutes);
 router.use('/v1/account', accountRoutes);
+router.use('/v1/money-receipt', moneyReceiptRoutes);
 router.use('/v1/report/audit-log', auditLogRoutes);
 
 export default router;

@@ -201,13 +201,20 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
-  const account_type = req.query.account_type?.toString() || '';
+  let new_account_type = '';
+  let account_type = req.query.account_type?.toString() || '';
+  const payment_method = req.query.payment_method?.toString() || '';
+  if (account_type) {
+    new_account_type = account_type;
+  } else if (payment_method) {
+    new_account_type = payment_method;
+  }
 
   try {
     const data = await accountService
       .findAll({
         status: 'ACTIVE',
-        account_type: account_type,
+        account_type: new_account_type,
       })
       .select('name code _id');
     res.json({ success: true, data });

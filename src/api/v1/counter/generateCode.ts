@@ -1,6 +1,9 @@
 import Counter from './counter.modal';
 
-export const generateCode = async (name: 'enrollment', prefix: 'ENR') => {
+export const generateCode = async (
+  name: 'enrollment' | 'money_receipt',
+  prefix: 'ENR' | 'MR',
+) => {
   const counter = await Counter.findOneAndUpdate(
     { name },
     { $inc: { seq: 1 } },

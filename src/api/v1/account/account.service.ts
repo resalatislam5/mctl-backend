@@ -56,7 +56,10 @@ const create = ({
 };
 
 const update = (_id: string, data: Partial<IAccountList>) => {
-  return Account.findByIdAndUpdate(_id, data, { new: true });
+  return Account.findByIdAndUpdate(_id, data, {
+    returnDocument: 'after',
+    runValidators: true,
+  });
 };
 
 const deleteItem = (_id: string) => {

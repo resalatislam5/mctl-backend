@@ -2,11 +2,14 @@ import { PipelineStage } from 'mongoose';
 import { IEnrollmentFindAllParams, IEnrollmentList } from './enrollment.dto';
 import { Enrollment } from './enrollment.model';
 
-const findAll = ({ search }: IEnrollmentFindAllParams) => {
+const findAll = ({ search, student_id }: IEnrollmentFindAllParams) => {
   const query: any = {};
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
+  }
+  if (student_id) {
+    query.student_id = student_id;
   }
 
   return Enrollment.find(query);

@@ -1,0 +1,84 @@
+import { PipelineStage } from 'mongoose';
+import Account from '../account/account.model';
+import {
+  IMoneyReceiptFindAllParams,
+  IMoneyReceiptList,
+} from './moneyReceipt.dto';
+import MoneyReceipt from './moneyReceipt.model';
+
+const findAll = ({ search, agent_id }: IMoneyReceiptFindAllParams) => {
+  const query: Record<string, unknown> = {};
+
+  // search filter
+  if (search) {
+    query.$or = [{ name: { $regex: search, $options: 'i' } }];
+  }
+  if (agent_id) {
+    query.agent_id = agent_id;
+  }
+  return MoneyReceipt.find(query);
+};
+
+const findOne = ({ key }: { key?: Partial<IMoneyReceiptList> }) => {
+  if (key?._id) {
+    return MoneyReceipt.findById(key._id);
+  }
+
+  return MoneyReceipt.findOne(key);
+};
+
+const create = ({
+  acc_id,
+  amount,
+  enrollment_id,
+  paid_amount,
+  payment_method,
+  voucher_no,
+  student_id,
+  date,
+}: IMoneyReceiptList) => {
+  const moneyReceipt = new MoneyReceipt({
+    acc_id,
+    amount,
+    enrollment_id,
+    paid_amount,
+    payment_method,
+    voucher_no,
+    student_id,
+    date,
+  });
+  return moneyReceipt.save();
+};
+
+const update = (_id: string, data: Partial<IMoneyReceiptList>) => {
+  return MoneyReceipt.findByIdAndUpdate(_id, data, { new: true });
+};
+
+const deleteItem = (_id: string) => {
+  return MoneyReceipt.findByIdAndDelete(_id);
+};
+
+const count = ({ search }: IMoneyReceiptFindAllParams) => {
+  const query: Record<string, unknown> = {};
+
+  // search filter
+  if (search) {
+    query.$or = [{ name: { $regex: search, $options: 'i' } }];
+  }
+
+  return MoneyReceipt.countDocuments(query);
+};
+
+const aggregate = (pipeline: PipelineStage[]) => {
+  return MoneyReceipt.aggregate(pipeline);
+};
+
+export default {
+  findAll,
+  findOne,
+  create,
+  update,
+  deleteItem,
+  count,
+  aggregate,
+};
