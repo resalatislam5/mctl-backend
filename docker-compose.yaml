@@ -11,6 +11,25 @@ services:
       - 27017:27017
     volumes:
       - 'my_mongo_db_data:/data/db'
+    networks:
+      - app_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_server
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
 volumes:
   my_mongo_db_data:
     driver: local
+  redis_data:
+
+networks:
+  app_network:
