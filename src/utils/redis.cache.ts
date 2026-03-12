@@ -27,7 +27,10 @@ import redisClient from '../config/redis.config';
 export const getCache = async <T = any>(key: string): Promise<T | null> => {
   try {
     const data = await redisClient.get(key);
-    if (typeof data === 'string') {
+    if (typeof data === 'object') {
+      const NData = JSON.stringify(data);
+      return JSON.parse(NData);
+    } else if (typeof data === 'string') {
       return JSON.parse(data) as T;
     }
 
@@ -38,7 +41,7 @@ export const getCache = async <T = any>(key: string): Promise<T | null> => {
   }
 };
 
-export const setCache = async (key: string, value: unknown, ttl = 60) => {
+export const setCache = async (key: string, value: unknown, ttl = 86400) => {
   try {
     await redisClient.set(key, JSON.stringify(value), { ex: ttl }); // stringify object
   } catch (err) {
