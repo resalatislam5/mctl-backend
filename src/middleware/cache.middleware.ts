@@ -5,12 +5,13 @@ import { deleteCache, getCache, setCache } from '../utils/redis.cache';
 export const cacheMiddleware = (ttl = 86400) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const key = req.originalUrl;
-    console.log('key--->', key);
 
     const cached = await await getCache(key);
 
     if (cached) {
-      return res.json(JSON.parse(cached));
+      console.log('send form cache');
+
+      return res.json(cached);
     }
 
     const originalJson = res.json.bind(res);
@@ -47,7 +48,6 @@ export const cacheInvalidateMiddleware = (
       }
 
       await deleteCache(key);
-      console.log(`Cache invalidated for key: ${key}`);
 
       next();
     } catch (err) {

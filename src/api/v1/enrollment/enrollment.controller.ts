@@ -254,7 +254,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           status: 'NO',
           soft_copy: 'NO',
         })) || [];
-      console.log('new course', newCourses);
     }
 
     if (course_type === 'SPECIFIC') {
@@ -264,8 +263,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         soft_copy: 'NO',
       }));
     }
-
-    console.log(courses);
 
     const data = await enrollmentService.create({
       additional_discount,
