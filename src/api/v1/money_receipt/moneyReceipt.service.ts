@@ -1,4 +1,4 @@
-import { PipelineStage } from 'mongoose';
+import { ClientSession, PipelineStage } from 'mongoose';
 import Account from '../account/account.model';
 import {
   IMoneyReceiptFindAllParams,
@@ -27,16 +27,19 @@ const findOne = ({ key }: { key?: Partial<IMoneyReceiptList> }) => {
   return MoneyReceipt.findOne(key);
 };
 
-const create = ({
-  acc_id,
-  amount,
-  enrollment_id,
-  paid_amount,
-  payment_method,
-  voucher_no,
-  student_id,
-  date,
-}: IMoneyReceiptList) => {
+const create = (
+  {
+    acc_id,
+    amount,
+    enrollment_id,
+    paid_amount,
+    payment_method,
+    voucher_no,
+    student_id,
+    date,
+  }: IMoneyReceiptList,
+  session?: ClientSession | null,
+) => {
   const moneyReceipt = new MoneyReceipt({
     acc_id,
     amount,
@@ -47,7 +50,7 @@ const create = ({
     student_id,
     date,
   });
-  return moneyReceipt.save();
+  return moneyReceipt.save({ ...(session && { session }) });
 };
 
 const update = (_id: string, data: Partial<IMoneyReceiptList>) => {

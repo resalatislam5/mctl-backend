@@ -1,4 +1,4 @@
-import { PipelineStage } from 'mongoose';
+import { ClientSession, PipelineStage } from 'mongoose';
 import { IEnrollmentFindAllParams, IEnrollmentList } from './enrollment.dto';
 import { Enrollment } from './enrollment.model';
 
@@ -64,8 +64,16 @@ const create = ({
   return pkg.save();
 };
 
-const update = (_id: string, data: Partial<IEnrollmentList>) => {
-  return Enrollment.findByIdAndUpdate(_id, data, { new: true });
+const update = (
+  _id: string,
+  data: Partial<IEnrollmentList>,
+  session?: ClientSession | null,
+) => {
+  return Enrollment.findByIdAndUpdate(_id, data, {
+    returnDocument: 'after',
+    runValidators: true,
+    ...(session && { session }),
+  });
 };
 
 const deleteItem = (_id: string) => {

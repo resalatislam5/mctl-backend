@@ -10,6 +10,7 @@ import { generateCode } from '../counter/generateCode';
 import enrollmentService from '../enrollment/enrollment.service';
 import { IMoneyReceiptList } from './moneyReceipt.dto';
 import moneyReceiptService from './moneyReceipt.service';
+import { withTransaction } from '../../../utils/withTransaction';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -107,64 +108,98 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   const { acc_id, amount, enrollment_id, payment_method, student_id, date } =
     req.body as IMoneyReceiptList;
   try {
-    const account = await accountService.findOne({ key: { _id: acc_id } });
-    if (!account) customError('Account Not Found', 404);
-    await accountService.update(acc_id, {
-      available_balance: (
-        Number(account?.available_balance) + Number(amount)
-      ).toFixed(2),
-    });
+    const data = await withTransaction(async (session) => {
+      const account = await accountService
+        .findOne({
+          key: { _id: acc_id },
+        })
+        .session(session || null);
+      if (!account) customError('Account Not Found', 404);
+      await accountService.update(
+        acc_id,
+        {
+          available_balance: (
+            Number(account?.available_balance) + Number(amount)
+          ).toFixed(2),
+        },
+        session,
+      );
 
-    const enrollment = await enrollmentService.findOne({
-      key: { _id: enrollment_id },
-    });
+      const enrollment = await enrollmentService
+        .findOne({
+          key: { _id: enrollment_id },
+        })
+        .session(session || null);
 
-    if (!enrollment) customError('Enrollment Not Found', 404);
+      if (!enrollment) customError('Enrollment Not Found', 404);
 
-    if (enrollment?.agent_id) {
-      const total_student = await moneyReceiptService.findAll({
-        agent_id: `${enrollment.agent_id}`,
-        batch_id: `${enrollment?.batch_id}`,
-      });
-      const agent = await agentService.findOne({
-        key: { _id: `${enrollment?.agent_id}` },
-      });
-      if (total_student?.length === agent?.min_limit) {
-        // TODO: joto  gulo money receipt aca sob gulo map kore.... agent ar amount sth a plus korte hobe
-        const total_amount = total_student.reduce(
-          (curr, prev) => curr + Number(prev?.amount || 0),
-          0,
-        );
-        const commission = total_amount % Number(agent?.commission);
-        await agentService.update(`${agent?._id}`, {
-          total_amount: commission.toFixed(2),
-        });
+      await enrollmentService.update(
+        `${enrollment?._id}`,
+        {
+          total_paid: (Number(enrollment?.total_paid) + Number(amount)).toFixed(
+            2,
+          ),
+        },
+        session,
+      );
+      if (enrollment?.agent_id) {
+        const total_student = await moneyReceiptService
+          .findAll({
+            agent_id: `${enrollment.agent_id}`,
+            batch_id: `${enrollment?.batch_id}`,
+          })
+          .session(session || null);
+
+        const agent = await agentService
+          .findOne({
+            key: { _id: `${enrollment?.agent_id}` },
+          })
+          .session(session || null);
+        if (total_student?.length === agent?.min_limit) {
+          // TODO: joto  gulo money receipt aca sob gulo map kore.... agent ar amount sth a plus korte hobe
+          const total_amount = total_student.reduce(
+            (curr, prev) => curr + Number(prev?.amount || 0),
+            0,
+          );
+          const commission = total_amount % Number(agent?.commission);
+          await agentService.update(
+            `${agent?._id}`,
+            {
+              total_amount: commission.toFixed(2),
+            },
+            session,
+          );
+        }
       }
-    }
 
-    const voucher_no = await generateCode('money_receipt', 'MR');
-    const data = await moneyReceiptService.create({
-      acc_id,
-      amount,
-      enrollment_id,
-      payment_method,
-      voucher_no,
-      student_id,
-      date,
-      paid_amount: (
-        Number(enrollment?.total_paid || 0) + Number(amount || 0)
-      ).toFixed(2),
+      const voucher_no = await generateCode('money_receipt', 'MR', session);
+      const data = await moneyReceiptService.create(
+        {
+          acc_id,
+          amount,
+          enrollment_id,
+          payment_method,
+          voucher_no,
+          student_id,
+          date,
+          paid_amount: (
+            Number(enrollment?.total_paid || 0) + Number(amount || 0)
+          ).toFixed(2),
+        },
+        session,
+      );
+
+      // throw new Error('Custom error');
+      await auditLogService.create({
+        req,
+        user: req.user,
+        action: 'CREATE',
+        entity: 'Money Receipt',
+        entity_id: data?._id?.toString() as string,
+        description: `A new money receipt has been created money_receipt_id: ${data?._id?.toString()}`,
+      });
+      return data;
     });
-
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'CREATE',
-      entity: 'Money Receipt',
-      entity_id: data?._id?.toString() as string,
-      description: `A new money receipt has been created money_receipt_id: ${data?._id?.toString()}`,
-    });
-
     res.json({
       success: true,
       message: 'Money receipt created successfully',

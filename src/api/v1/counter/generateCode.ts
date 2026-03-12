@@ -1,13 +1,20 @@
+import { ClientSession } from 'mongoose';
 import Counter from './counter.modal';
 
 export const generateCode = async (
   name: 'enrollment' | 'money_receipt',
   prefix: 'ENR' | 'MR',
+  session?: ClientSession | null,
 ) => {
   const counter = await Counter.findOneAndUpdate(
     { name },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true },
+    {
+      returnDocument: 'after',
+      runValidators: true,
+      upsert: true,
+      ...(session && { session }),
+    },
   );
 
   const number = String(counter.seq).padStart(4, '0');

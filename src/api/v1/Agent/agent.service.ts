@@ -1,3 +1,4 @@
+import { ClientSession } from 'mongoose';
 import { customError } from '../../../utils/customError';
 import User from '../user/user.model';
 import { IAgentFindAllParams, IAgentList } from './agent.dto';
@@ -52,8 +53,16 @@ const create = ({
   return agent.save();
 };
 
-const update = (_id: string, data: Partial<IAgentList>) => {
-  return Agent.findByIdAndUpdate(_id, data, { new: true });
+const update = (
+  _id: string,
+  data: Partial<IAgentList>,
+  session?: ClientSession | null,
+) => {
+  return Agent.findByIdAndUpdate(_id, data, {
+    returnDocument: 'after',
+    runValidators: true,
+    ...(session && { session }),
+  });
 };
 
 const deleteItem = (_id: string) => {

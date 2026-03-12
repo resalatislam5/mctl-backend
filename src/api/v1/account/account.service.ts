@@ -1,3 +1,4 @@
+import { ClientSession } from 'mongoose';
 import { IAccountFindAllParams, IAccountList } from './account.dto';
 import Account from './account.model';
 
@@ -55,10 +56,15 @@ const create = ({
   return account.save();
 };
 
-const update = (_id: string, data: Partial<IAccountList>) => {
+const update = (
+  _id: string,
+  data: Partial<IAccountList>,
+  session?: ClientSession | null,
+) => {
   return Account.findByIdAndUpdate(_id, data, {
     returnDocument: 'after',
     runValidators: true,
+    ...(session && { session }),
   });
 };
 
