@@ -1,15 +1,14 @@
-import express, { Request, Response } from 'express';
 import cors from 'cors';
-import morgan from 'morgan';
+import { config } from 'dotenv';
+import express, { Request, Response } from 'express';
 import fs from 'fs';
+import morgan from 'morgan';
 import path from 'path';
-import YAML from 'yaml';
 import swaggerUI from 'swagger-ui-express';
+import YAML from 'yaml';
 import connectDB from './db/connectDB';
 import router from './routes';
 import { errorHandler } from './utils/errorHandlers';
-import { config } from 'dotenv';
-import { connectRedis } from './config/redis.config';
 
 config();
 
@@ -64,7 +63,6 @@ if (!process.env.VERCEL) {
   // });
   const startServer = async () => {
     try {
-      await connectRedis(); // Redis connect once
       await connectOnce(); // Mongo connect once
 
       app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

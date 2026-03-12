@@ -1,26 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
-import redisClient from '../config/redis.config';
 import { deleteCache, getCache, setCache } from '../utils/redis.cache';
 
+/**
+ * Cache middleware
+ * Caches GET responses in Redis
+ * @param ttl Cache time-to-live in seconds (default 1 day)
+ */
 export const cacheMiddleware = (ttl = 86400) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const key = req.originalUrl;
+    console.log('key ---->', key);
 
-    const cached = await await getCache(key);
-
-    if (cached) {
-      console.log('send form cache');
-
-      return res.json(cached);
+    try {
+      const cached = await getCache(key);
+      if (cached) {
+        console.log('cache send');
+        console.log('✅ Response served from cache:', key);
+        return res.json(cached);
+      }
+    } catch (err) {
+      console.warn('⚠️ Cache read failed, continuing to DB', err);
     }
 
+    // Override res.json to cache the response
     const originalJson = res.json.bind(res);
-
     res.json = (body: any) => {
-      // redisClient.set(key, JSON.stringify(body), {
-      //   EX: ttl,
-      // });
-      setCache(key, body, ttl).catch(() => {});
+      setCache(key, body, ttl).catch((err) => {
+        console.warn('⚠️ Cache write failed', err);
+      });
       return originalJson(body);
     };
 
@@ -29,8 +36,8 @@ export const cacheMiddleware = (ttl = 86400) => {
 };
 
 /**
- * Invalidate cache middleware
- * Automatically generates key like cacheMiddleware
+ * Cache invalidation middleware
+ * Automatically deletes cache for a key
  * @param getKey Optional custom key generator function
  */
 export const cacheInvalidateMiddleware = (
@@ -38,21 +45,13 @@ export const cacheInvalidateMiddleware = (
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Auto-generate key if no custom generator is provided
-      let key: string;
-      if (getKey) {
-        key = getKey(req);
-      } else {
-        // Default: use originalUrl as key
-        key = req.originalUrl;
-      }
-
+      const key = getKey ? getKey(req) : req.originalUrl;
       await deleteCache(key);
-
-      next();
+      console.log('🗑 Cache invalidated:', key);
     } catch (err) {
-      console.error('Cache invalidation error:', err);
-      next(); // continue even if delete fails
+      console.warn('⚠️ Cache invalidation error', err);
+    } finally {
+      next(); // continue request regardless of cache errors
     }
   };
 };
