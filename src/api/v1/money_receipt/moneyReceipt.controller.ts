@@ -11,6 +11,7 @@ import enrollmentService from '../enrollment/enrollment.service';
 import { IMoneyReceiptList } from './moneyReceipt.dto';
 import moneyReceiptService from './moneyReceipt.service';
 import { withTransaction } from '../../../utils/withTransaction';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -92,13 +93,58 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await moneyReceiptService.findOne({
-      key: { _id: _id as string },
-    });
+    // const data = await moneyReceiptService.findOne({
+    //   key: { _id: _id as string },
+    // });
+
+    const data = await moneyReceiptService.aggregate([
+      { $match: { _id: convertObjectID(_id) } },
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'student_id',
+          foreignField: '_id',
+          as: 'student',
+        },
+      },
+      {
+        $lookup: {
+          from: 'enrollments',
+          localField: 'enrollment_id',
+          foreignField: '_id',
+          as: 'enrollment',
+        },
+      },
+      {
+        $addFields: {
+          student_name: {
+            $ifNull: [{ $arrayElemAt: ['$student.name', 0] }, null],
+          },
+          student_code: {
+            $ifNull: [{ $arrayElemAt: ['$student.code', 0] }, null],
+          },
+          enrollment_code: {
+            $ifNull: [{ $arrayElemAt: ['$enrollment.code', 0] }, null],
+          },
+          total_amount: {
+            $ifNull: [{ $arrayElemAt: ['$enrollment.total_amount', 0] }, null],
+          },
+          course_type: {
+            $ifNull: [{ $arrayElemAt: ['$enrollment.course_type', 0] }, null],
+          },
+        },
+      },
+      {
+        $project: {
+          student: 0,
+          enrollment: 0,
+        },
+      },
+    ]);
     if (!data) {
       customError('Money receipt not found', 404);
     }
-    res.json({ success: true, data });
+    res.json({ success: true, data: data?.[0] });
   } catch (err) {
     next(err);
   }

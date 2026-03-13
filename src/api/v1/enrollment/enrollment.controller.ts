@@ -461,7 +461,7 @@ const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await enrollmentService
       .findAll({ student_id })
-      .select('total_amount paid_amount code _id');
+      .select('total_amount total_paid code _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);
