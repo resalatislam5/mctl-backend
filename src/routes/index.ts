@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import accountRoutes from './accountRoutes';
 import agentRoutes from './agentRoutes';
 import auditLogRoutes from './auditLogRoutes';
 import authRoutes from './authRoutes';
@@ -9,14 +10,14 @@ import courseRoutes from './courseRoutes';
 import districtRoutes from './districtRoutes';
 import divisionRoutes from './divisionRoutes';
 import enrollmentRoutes from './enrollmentRoutes';
+import headRoutes from './headRoutes';
 import moduleRoutes from './moduleRoutes';
+import moneyReceiptRoutes from './moneyReceipt';
 import packageRoutes from './packageRoutes';
 import roleRoutes from './roleRoutes';
 import studentRoutes from './studentRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
-import accountRoutes from './accountRoutes';
-import moneyReceiptRoutes from './moneyReceipt';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -34,6 +35,7 @@ router.use('/v1', authRoutes);
 router.use('/v1/student', studentRoutes);
 router.use('/v1/enrollment', enrollmentRoutes);
 router.use('/v1/account', accountRoutes);
+router.use('/v1/head', headRoutes);
 router.use('/v1/money-receipt', moneyReceiptRoutes);
 router.use('/v1/report/audit-log', auditLogRoutes);
 
