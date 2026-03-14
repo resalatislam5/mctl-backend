@@ -2,7 +2,7 @@ import { PipelineStage } from 'mongoose';
 import { IStudentFindAllParams, IStudentList } from './student.dto';
 import { Student } from './student.model';
 
-const findAll = ({ search, status }: IStudentFindAllParams) => {
+const findAll = ({ search, status, student_id }: IStudentFindAllParams) => {
   const query: any = {};
 
   if (search) {
@@ -11,6 +11,9 @@ const findAll = ({ search, status }: IStudentFindAllParams) => {
 
   if (status) {
     query.status = status;
+  }
+  if (student_id) {
+    query._id = student_id;
   }
   return Student.find(query);
 };

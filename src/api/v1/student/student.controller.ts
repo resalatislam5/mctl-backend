@@ -13,18 +13,19 @@ import studentService from './student.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
+  const student_id = req.query.student_id?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
   try {
     const [data, total] = await Promise.all([
       studentService
-        .findAll({ search, status })
+        .findAll({ search, status, student_id })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 })
         .select('name email code mobile_no gender nid_no status createdAt'),
-      studentService.count({ search, status }),
+      studentService.count({ search, status, student_id }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {

@@ -57,5 +57,6 @@ export interface IStudentList {
 
 export interface IStudentFindAllParams {
   search?: string;
+  student_id?: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
