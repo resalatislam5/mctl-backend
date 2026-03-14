@@ -2,8 +2,8 @@ import { ClientSession } from 'mongoose';
 import Counter from './counter.modal';
 
 export const generateCode = async (
-  name: 'enrollment' | 'money_receipt',
-  prefix: 'ENR' | 'MR',
+  name: 'enrollment' | 'money_receipt' | 'expense_history',
+  prefix: 'ENR' | 'MR' | 'EXP',
   session?: ClientSession | null,
 ) => {
   const counter = await Counter.findOneAndUpdate(

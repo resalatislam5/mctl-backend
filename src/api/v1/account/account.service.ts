@@ -1,6 +1,7 @@
 import { ClientSession } from 'mongoose';
 import { IAccountFindAllParams, IAccountList } from './account.dto';
 import Account from './account.model';
+import { UpdateQuery } from 'mongoose';
 
 const findAll = ({ search, account_type, status }: IAccountFindAllParams) => {
   const query: Record<string, unknown> = {};
@@ -58,7 +59,7 @@ const create = ({
 
 const update = (
   _id: string,
-  data: Partial<IAccountList>,
+  data: UpdateQuery<IAccountList>,
   session?: ClientSession | null,
 ) => {
   return Account.findByIdAndUpdate(_id, data, {
