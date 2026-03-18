@@ -103,11 +103,11 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     await auditLogService.create({
       req,
       user: req.user,
-      action: 'DELETE',
+      action: 'UPDATE',
       entity: 'Head',
       entity_id: _id as string,
       changes: compareChange,
-      description: `A new Head has been deleted head_id: ${_id}`,
+      description: `A new Head has been updated head_id: ${_id}`,
     });
 
     res.json({
