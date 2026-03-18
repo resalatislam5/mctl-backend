@@ -16,8 +16,6 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
   try {
-    //   expenseHistoryService.count({ search }),
-    // ]);
     const data = await expenseHistoryService.aggregate([
       {
         $lookup: {
