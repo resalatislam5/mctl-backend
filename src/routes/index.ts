@@ -20,6 +20,7 @@ import roleRoutes from './roleRoutes';
 import studentRoutes from './studentRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
+import ReportRoutes from './reportRoutes';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -42,5 +43,6 @@ router.use('/v1/expense', expenseHistoryRoutes);
 router.use('/v1/balance-transfer', balanceTransferRoutes);
 router.use('/v1/money-receipt', moneyReceiptRoutes);
 router.use('/v1/report/audit-log', auditLogRoutes);
+router.use('/v1/report', ReportRoutes);
 
 export default router;
