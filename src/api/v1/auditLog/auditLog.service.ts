@@ -14,9 +14,11 @@ export interface AuditParams {
 const findAll = ({
   from_date,
   to_date,
+  user_id,
 }: {
   from_date?: string;
   to_date?: string;
+  user_id?: string;
 }) => {
   const query: any = {};
 
@@ -35,6 +37,9 @@ const findAll = ({
     }
 
     query.createdAt = dateFilter;
+  }
+  if (user_id) {
+    query.user_id = user_id;
   }
 
   return AuditLog.find(query);
@@ -69,13 +74,14 @@ const create = async ({
 const count = ({
   from_date,
   to_date,
+  user_id,
 }: {
   from_date?: string;
   to_date?: string;
+  user_id?: string;
 }) => {
   const query: any = {};
 
-  // Date filter
   if (from_date || to_date) {
     const dateFilter: any = {};
 
@@ -88,8 +94,13 @@ const count = ({
       toDate.setHours(23, 59, 59, 999); // include entire day
       dateFilter.$lte = toDate;
     }
+
+    query.createdAt = dateFilter;
   }
 
+  if (user_id) {
+    query.user_id = user_id;
+  }
   return AuditLog.countDocuments(query);
 };
 
