@@ -14,20 +14,20 @@ import { withTransaction } from '../../../utils/withTransaction';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
+  const query: any = {};
   const search = req.query.search?.toString() || '';
+  const student_id = req.query.student_id?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
 
+  if (student_id) {
+    query.student_id = convertObjectID(student_id);
+  }
   try {
-    // const [data, total] = await Promise.all([
-    //   moneyReceiptService
-    //     .findAll({ search })
-    //     .limit(limit)
-    //     .skip(skip)
-    //     .sort({ createdAt: -1 }),
-    //   moneyReceiptService.count({ search }),
-    // ]);
     const data = await moneyReceiptService.aggregate([
+      {
+        $match: query,
+      },
       {
         $lookup: {
           from: 'students',
@@ -71,14 +71,34 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
         },
       },
       {
-        $project: {
-          student: 0,
-          batch: 0,
-          enrollment: 0,
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $project: {
+                student: 0,
+                batch: 0,
+                enrollment: 0,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
         },
       },
     ]);
-    res.json({ success: true, total: 0, data });
+    res.json({
+      success: true,
+      total: data[0]?.totalCount[0]?.count,
+      data: data[0]?.data,
+    });
   } catch (err) {
     next(err);
   }
