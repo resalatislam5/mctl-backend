@@ -1,5 +1,4 @@
 import { ClientSession, PipelineStage } from 'mongoose';
-import Account from '../account/account.model';
 import {
   IMoneyReceiptFindAllParams,
   IMoneyReceiptList,

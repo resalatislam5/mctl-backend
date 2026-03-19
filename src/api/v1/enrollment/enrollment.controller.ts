@@ -9,13 +9,22 @@ import { generateCode } from '../counter/generateCode';
 import packageService from '../package_new/package.service';
 import { IEnrollmentList } from './enrollment.dto';
 import enrollmentService from './enrollment.service';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
+  const query: any = {};
   const search = req.query.search?.toString() || '';
+  const student_id = req.query.student_id?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
+  if (student_id) {
+    query.student_id = convertObjectID(student_id);
+  }
   try {
     const data = await enrollmentService.aggregate([
+      {
+        $match: query,
+      },
       {
         $lookup: {
           from: 'students',

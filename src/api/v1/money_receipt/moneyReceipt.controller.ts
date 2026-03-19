@@ -113,10 +113,6 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    // const data = await moneyReceiptService.findOne({
-    //   key: { _id: _id as string },
-    // });
-
     const data = await moneyReceiptService.aggregate([
       { $match: { _id: convertObjectID(_id) } },
       {
