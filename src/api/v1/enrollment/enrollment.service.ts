@@ -2,7 +2,11 @@ import { ClientSession, PipelineStage } from 'mongoose';
 import { IEnrollmentFindAllParams, IEnrollmentList } from './enrollment.dto';
 import { Enrollment } from './enrollment.model';
 
-const findAll = ({ search, student_id }: IEnrollmentFindAllParams) => {
+const findAll = ({
+  search,
+  student_id,
+  installment_date,
+}: IEnrollmentFindAllParams) => {
   const query: any = {};
 
   if (search) {
@@ -10,6 +14,9 @@ const findAll = ({ search, student_id }: IEnrollmentFindAllParams) => {
   }
   if (student_id) {
     query.student_id = student_id;
+  }
+  if (installment_date) {
+    query.installment_date = installment_date;
   }
 
   return Enrollment.find(query);

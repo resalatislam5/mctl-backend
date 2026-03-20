@@ -34,6 +34,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
         },
         status: { type: String, enum: ['YES', 'NO'], default: 'NO' },
         soft_copy: { type: String, enum: ['YES', 'NO'], default: 'NO' },
+        _id: false,
       },
     ],
     course_ids: {
@@ -67,6 +68,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
       {
         name: { type: String },
         date: { type: Date },
+        _id: false,
       },
     ],
   },

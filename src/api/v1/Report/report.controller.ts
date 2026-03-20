@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import enrollmentService from '../enrollment/enrollment.service';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
 import expenseHistoryService from '../expenseHistory/expenseHistory.service';
+import { customError } from '../../../utils/customError';
 
 const studentLedger = async (
   req: Request,
@@ -173,4 +174,88 @@ const expenseReport = async (
   }
 };
 
-export default { studentLedger, expenseReport };
+const upcomingInstallments = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const date = req.query.date?.toString() || '';
+    if (!date) customError('Date is required', 404);
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const data = await enrollmentService.aggregate([
+      {
+        $match: {
+          'installment_date.date': {
+            $gte: start,
+            $lte: end,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'students',
+          localField: 'student_id',
+          foreignField: '_id',
+          as: 'student',
+        },
+      },
+      {
+        $addFields: {
+          matched_installments: {
+            $filter: {
+              input: '$installment_date',
+              as: 'item',
+              cond: {
+                $and: [
+                  { $gte: ['$$item.date', start] },
+                  { $lte: ['$$item.date', end] },
+                ],
+              },
+            },
+          },
+          student_name: {
+            $ifNull: [{ $arrayElemAt: ['$student.name', 0] }, null],
+          },
+          student_code: {
+            $ifNull: [{ $arrayElemAt: ['$student.code', 0] }, null],
+          },
+        },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $project: {
+                installment_date: 1,
+                admission_date: 1,
+                matched_installments: 1,
+                total_amount: 1,
+                total_paid: 1,
+                student_name: 1,
+                student_code: 1,
+                code: 1,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      total: data[0]?.totalCount[0]?.count,
+      data: data[0]?.data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default { studentLedger, expenseReport, upcomingInstallments };

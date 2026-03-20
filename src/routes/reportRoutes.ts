@@ -4,6 +4,11 @@ import { authenticate } from '../middleware/authenticate';
 
 const ReportRoutes: Router = Router()
   .get('/student-ledger', authenticate, reportController.studentLedger)
-  .get('/expense', authenticate, reportController.expenseReport);
+  .get('/expense', authenticate, reportController.expenseReport)
+  .get(
+    '/upcoming-installment',
+    authenticate,
+    reportController.upcomingInstallments,
+  );
 
 export default ReportRoutes;
