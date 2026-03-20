@@ -204,35 +204,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         },
         session,
       );
-      if (enrollment?.agent_id) {
-        const total_student = await moneyReceiptService
-          .findAll({
-            agent_id: `${enrollment.agent_id}`,
-            batch_id: `${enrollment?.batch_id}`,
-          })
-          .session(session || null);
-
-        const agent = await agentService
-          .findOne({
-            key: { _id: `${enrollment?.agent_id}` },
-          })
-          .session(session || null);
-        if (total_student?.length === agent?.min_limit) {
-          // TODO: joto  gulo money receipt aca sob gulo map kore.... agent ar amount sth a plus korte hobe
-          const total_amount = total_student.reduce(
-            (curr, prev) => curr + Number(prev?.amount || 0),
-            0,
-          );
-          const commission = total_amount % Number(agent?.commission);
-          await agentService.update(
-            `${agent?._id}`,
-            {
-              total_amount: commission.toFixed(2),
-            },
-            session,
-          );
-        }
-      }
 
       const voucher_no = await generateCode('money_receipt', 'MR', session);
       const data = await moneyReceiptService.create(
@@ -297,15 +268,80 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Money receipt not found', 404);
     }
 
-    const data = await moneyReceiptService.update(_id as string, {
-      acc_id,
-      amount,
-      enrollment_id,
-      paid_amount,
-      payment_method,
-      voucher_no,
-      student_id,
-      date,
+    const data = await withTransaction(async (session) => {
+      const oldAccId = findSingle.acc_id.toString();
+      const newAccId = acc_id;
+
+      const oldAmount = Number(findSingle.amount || 0);
+      const newAmount = Number(amount || 0);
+
+      if (oldAccId !== newAccId) {
+        const oldAccount = await accountService
+          .findOne({ key: { _id: oldAccId } })
+          .session(session || null);
+
+        if (!oldAccount) customError('Old Account Not Found', 404);
+
+        await accountService.update(
+          oldAccId,
+          {
+            available_balance: (
+              Number(oldAccount?.available_balance || 0) - oldAmount
+            ).toFixed(2),
+          },
+          session,
+        );
+
+        const newAccount = await accountService
+          .findOne({ key: { _id: newAccId } })
+          .session(session || null);
+
+        if (!newAccount) customError('New Account Not Found', 404);
+
+        await accountService.update(
+          newAccId,
+          {
+            available_balance: (
+              Number(newAccount?.available_balance || 0) + newAmount
+            ).toFixed(2),
+          },
+          session,
+        );
+      } else {
+        const diff = newAmount - oldAmount;
+
+        const account = await accountService
+          .findOne({ key: { _id: newAccId } })
+          .session(session || null);
+
+        if (!account) customError('Account Not Found', 404);
+
+        await accountService.update(
+          newAccId,
+          {
+            available_balance: (
+              Number(account?.available_balance || 0) + diff
+            ).toFixed(2),
+          },
+          session,
+        );
+      }
+
+      const data = await moneyReceiptService.update(
+        _id as string,
+        {
+          acc_id,
+          amount,
+          enrollment_id,
+          paid_amount,
+          payment_method,
+          voucher_no,
+          student_id,
+          date,
+        },
+        session,
+      );
+      return data;
     });
 
     const compareChange = detectChanges(
@@ -346,7 +382,28 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Money receipt not found', 404);
     }
 
-    await moneyReceiptService.deleteItem(_id as string);
+    await withTransaction(async (session) => {
+      const oldAccId = findSingle.acc_id.toString();
+
+      const oldAccount = await accountService
+        .findOne({ key: { _id: oldAccId } })
+        .session(session || null);
+
+      if (!oldAccount) customError('Old Account Not Found', 404);
+
+      await accountService.update(
+        oldAccId,
+        {
+          available_balance: (
+            Number(oldAccount?.available_balance || 0) -
+            Number(findSingle.amount || 0)
+          ).toFixed(2),
+        },
+        session,
+      );
+
+      await moneyReceiptService.deleteItem(_id as string);
+    });
 
     await auditLogService.create({
       req,

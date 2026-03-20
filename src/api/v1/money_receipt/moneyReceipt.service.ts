@@ -52,8 +52,16 @@ const create = (
   return moneyReceipt.save({ ...(session && { session }) });
 };
 
-const update = (_id: string, data: Partial<IMoneyReceiptList>) => {
-  return MoneyReceipt.findByIdAndUpdate(_id, data, { new: true });
+const update = (
+  _id: string,
+  data: Partial<IMoneyReceiptList>,
+  session?: ClientSession | null,
+) => {
+  return MoneyReceipt.findByIdAndUpdate(_id, data, {
+    returnDocument: 'after',
+    runValidators: true,
+    ...(session && { session }),
+  });
 };
 
 const deleteItem = (_id: string) => {
