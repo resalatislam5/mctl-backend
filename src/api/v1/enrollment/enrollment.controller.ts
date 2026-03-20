@@ -248,6 +248,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     course_ids,
     agent_id,
     installment_type,
+    meal_accommodation,
   } = req.body as IEnrollmentList;
   try {
     const code = await generateCode('enrollment', 'ENR');
@@ -291,6 +292,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       course_ids,
       agent_id,
       installment_type,
+      meal_accommodation,
     });
 
     await auditLogService.create({
@@ -332,6 +334,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     course_ids,
     agent_id,
     installment_type,
+    meal_accommodation,
   } = (req?.body || {}) as IEnrollmentList;
 
   try {
@@ -404,6 +407,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       course_ids: course_type === 'SPECIFIC' ? course_ids : [],
       agent_id,
       installment_type,
+      meal_accommodation,
     });
 
     const compareChange = detectChanges(

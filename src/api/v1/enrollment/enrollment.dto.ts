@@ -19,6 +19,7 @@ export interface ICreateEnrollment extends Document {
   package_id: Types.ObjectId;
   total_amount: string;
   total_paid: string;
+  meal_accommodation: string;
   discount: string;
   additional_discount: string;
   installment_date: { name: string; date: Date }[];
@@ -42,6 +43,7 @@ export interface IEnrollmentList {
   package_id: Types.ObjectId;
   total_price: string;
   total_amount: string;
+  meal_accommodation: string;
   total_paid: string;
   discount: string;
   additional_discount: string;

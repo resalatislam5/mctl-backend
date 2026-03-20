@@ -57,6 +57,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     },
 
     total_amount: { type: String, required: true },
+    meal_accommodation: { type: String, required: true, default: '0' },
     total_price: { type: String, required: true },
     total_paid: { type: String, default: '0' },
     discount: { type: String, default: '0' },
