@@ -17,18 +17,70 @@ const findAll = async (
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
+
+  const query: any = {};
+
+  // search filter
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+    ];
+  }
+
   try {
-    const [data, total] = await Promise.all([
-      userService
-        .findAll({ search, status })
-        .limit(limit)
-        .skip(skip)
-        .sort({ createdAt: -1 })
-        .select('_id name email role_id status createdAt updatedAt'),
-      userService.count({ search, status }),
+    const data = await userService.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $lookup: {
+          from: 'roles',
+          localField: 'role_id',
+          foreignField: '_id',
+          as: 'role',
+        },
+      },
+      {
+        $addFields: {
+          role_name: { $ifNull: [{ $arrayElemAt: ['$role.name', 0] }, null] },
+        },
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                role_name: 1,
+                email: 1,
+                role_id: 1,
+                status: 1,
+                createdAt: 1,
+                updatedAt: 1,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
     ]);
 
-    res.json({ success: true, total, data });
+    res.json({
+      success: true,
+      total: data[0]?.totalCount[0]?.count,
+      data: data[0]?.data,
+    });
   } catch (err) {
     next(err);
   }
