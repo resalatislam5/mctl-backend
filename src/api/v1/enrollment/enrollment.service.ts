@@ -6,6 +6,8 @@ const findAll = ({
   search,
   student_id,
   installment_date,
+  batch_id,
+  agent_id,
 }: IEnrollmentFindAllParams) => {
   const query: any = {};
 
@@ -14,6 +16,12 @@ const findAll = ({
   }
   if (student_id) {
     query.student_id = student_id;
+  }
+  if (agent_id) {
+    query.agent_id = agent_id;
+  }
+  if (batch_id) {
+    query.batch_id = batch_id;
   }
   if (installment_date) {
     query.installment_date = installment_date;

@@ -22,5 +22,5 @@ export interface IAgentList {
 
 export interface IAgentFindAllParams {
   search?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status?: 'ACTIVE' | 'INACTIVE';
 }

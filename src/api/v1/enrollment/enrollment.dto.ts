@@ -53,5 +53,7 @@ export interface IEnrollmentList {
 export interface IEnrollmentFindAllParams {
   search?: string;
   student_id?: string;
+  agent_id?: Types.ObjectId;
+  batch_id?: Types.ObjectId;
   installment_date?: object;
 }
