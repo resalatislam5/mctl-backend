@@ -36,6 +36,11 @@ const AccountSchema = new Schema<ICreateAccount>(
       trim: true,
       default: '0',
     },
+    charge_percent: {
+      type: String,
+      trim: true,
+      default: '0',
+    },
 
     status: {
       type: String,

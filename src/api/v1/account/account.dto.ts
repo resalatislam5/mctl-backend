@@ -8,6 +8,7 @@ export interface ICreateAccount extends Document {
   branch_name: string;
   opening_balance: string;
   available_balance: string;
+  charge_percent: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
 export interface IAccountList {
@@ -19,6 +20,7 @@ export interface IAccountList {
   branch_name: string;
   opening_balance: string;
   available_balance: string;
+  charge_percent: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
 

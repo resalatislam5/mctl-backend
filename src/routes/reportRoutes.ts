@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import accountTransactionController from '../api/v1/accountTransaction/accountTransaction.controller';
 import reportController from '../api/v1/Report/report.controller';
 import { authenticate } from '../middleware/authenticate';
 
@@ -9,6 +10,7 @@ const ReportRoutes: Router = Router()
     '/upcoming-installment',
     authenticate,
     reportController.upcomingInstallments,
-  );
+  )
+  .get('/account-ledger', authenticate, accountTransactionController.findAll);
 
 export default ReportRoutes;

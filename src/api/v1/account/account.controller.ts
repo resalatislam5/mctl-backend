@@ -4,8 +4,8 @@ import { checkMongooseId } from '../../../utils/checkMongooseId';
 import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
 import auditLogService from '../auditLog/auditLog.service';
+import { IAccountList } from './account.dto';
 import accountService from './account.service';
-import { IAccountFindAllParams, IAccountList } from './account.dto';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -55,6 +55,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     bank_name,
     branch_name,
     opening_balance,
+    charge_percent,
     status,
   } = req.body as IAccountList;
   try {
@@ -66,6 +67,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       branch_name,
       opening_balance,
       available_balance: opening_balance,
+      charge_percent,
       status,
     });
 
@@ -97,6 +99,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     branch_name,
     opening_balance,
     name,
+    charge_percent,
     status,
   } = req.body as IAccountList;
 
@@ -139,6 +142,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       opening_balance,
       available_balance,
       name,
+      charge_percent,
       status,
     });
 

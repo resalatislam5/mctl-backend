@@ -36,6 +36,7 @@ const create = (
     voucher_no,
     student_id,
     date,
+    charge,
   }: IMoneyReceiptList,
   session?: ClientSession | null,
 ) => {
@@ -48,6 +49,7 @@ const create = (
     voucher_no,
     student_id,
     date,
+    charge,
   });
   return moneyReceipt.save({ ...(session && { session }) });
 };

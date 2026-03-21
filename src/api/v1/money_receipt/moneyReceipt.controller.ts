@@ -1,17 +1,17 @@
 import { NextFunction, Request, Response } from 'express';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
-import { customError } from '../../../utils/customError';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 import { detectChanges } from '../../../utils/detectChanges';
+import { withTransaction } from '../../../utils/withTransaction';
 import accountService from '../account/account.service';
-import agentService from '../Agent/agent.service';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
 import auditLogService from '../auditLog/auditLog.service';
 import { generateCode } from '../counter/generateCode';
 import enrollmentService from '../enrollment/enrollment.service';
+import { customError } from './../../../utils/customError';
 import { IMoneyReceiptList } from './moneyReceipt.dto';
 import moneyReceiptService from './moneyReceipt.service';
-import { withTransaction } from '../../../utils/withTransaction';
-import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const query: any = {};
@@ -177,11 +177,19 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         })
         .session(session || null);
       if (!account) customError('Account Not Found', 404);
+
+      let charge = 0;
+      if (payment_method === 'MOBILE_BANKING') {
+        charge =
+          (Number(amount || 0) * Number(account?.charge_percent || 0)) / 100;
+      }
+
       await accountService.update(
         acc_id,
         {
           available_balance: (
-            Number(account?.available_balance) + Number(amount)
+            Number(account?.available_balance) +
+            (Number(amount) - charge)
           ).toFixed(2),
         },
         session,
@@ -215,9 +223,22 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           voucher_no,
           student_id,
           date,
+          charge: charge.toFixed(2),
           paid_amount: (
             Number(enrollment?.total_paid || 0) + Number(amount || 0)
           ).toFixed(2),
+        },
+        session,
+      );
+
+      await accountTransactionService.create(
+        {
+          account_id: acc_id,
+          money_receipt_id: data?._id.toString(),
+          amount: (Number(amount) - charge).toFixed(2),
+          charge: charge.toFixed(2),
+          type: 'CREDIT',
+          description: `Payment from student (${student_id}) via ${payment_method}`,
         },
         session,
       );
@@ -275,6 +296,13 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       const oldAmount = Number(findSingle.amount || 0);
       const newAmount = Number(amount || 0);
 
+      const accountTransaction = await accountTransactionService.findOne({
+        key: { money_receipt_id: findSingle._id?.toString() },
+      });
+
+      if (!accountTransaction) {
+        customError('Transaction not found', 404);
+      }
       if (oldAccId !== newAccId) {
         const oldAccount = await accountService
           .findOne({ key: { _id: oldAccId } })
@@ -286,7 +314,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           oldAccId,
           {
             available_balance: (
-              Number(oldAccount?.available_balance || 0) - oldAmount
+              Number(oldAccount?.available_balance || 0) -
+              (oldAmount + Number(accountTransaction?.charge || 0))
             ).toFixed(2),
           },
           session,
@@ -298,12 +327,33 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
         if (!newAccount) customError('New Account Not Found', 404);
 
+        let charge = 0;
+        if (payment_method === 'MOBILE_BANKING') {
+          charge =
+            (Number(amount || 0) * Number(newAccount?.charge_percent || 0)) /
+            100;
+        }
+
         await accountService.update(
           newAccId,
           {
             available_balance: (
-              Number(newAccount?.available_balance || 0) + newAmount
+              Number(newAccount?.available_balance || 0) +
+              (newAmount - charge)
             ).toFixed(2),
+          },
+          session,
+        );
+
+        await accountTransactionService.update(
+          `${accountTransaction?._id}`,
+          {
+            account_id: newAccId,
+            money_receipt_id: findSingle?._id.toString(),
+            amount: (newAmount - charge).toFixed(2),
+            charge: charge.toFixed(2),
+            type: 'CREDIT',
+            description: `Payment from student (${student_id}) via ${payment_method}`,
           },
           session,
         );
@@ -316,16 +366,59 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
         if (!account) customError('Account Not Found', 404);
 
+        let charge = 0;
+        if (payment_method === 'MOBILE_BANKING') {
+          charge =
+            (Number(diff || 0) * Number(account?.charge_percent || 0)) / 100;
+        }
         await accountService.update(
           newAccId,
           {
             available_balance: (
-              Number(account?.available_balance || 0) + diff
+              Number(account?.available_balance || 0) +
+              diff -
+              charge
             ).toFixed(2),
           },
           session,
         );
+        await accountTransactionService.update(
+          `${accountTransaction?._id}`,
+          {
+            account_id: newAccId,
+            money_receipt_id: findSingle?._id.toString(),
+            amount: (
+              Number(accountTransaction?.amount || 0) +
+              diff -
+              charge
+            ).toFixed(2),
+            charge: (Number(accountTransaction?.charge || 0) + charge).toFixed(
+              2,
+            ),
+            type: 'CREDIT',
+            description: `Payment from student (${student_id}) via ${payment_method}`,
+          },
+          session,
+        );
       }
+
+      const enrollment = await enrollmentService
+        .findOne({
+          key: { _id: enrollment_id },
+        })
+        .session(session || null);
+
+      if (!enrollment) customError('Enrollment Not Found', 404);
+
+      const diff = newAmount - oldAmount;
+
+      await enrollmentService.update(
+        `${enrollment?._id}`,
+        {
+          total_paid: (Number(enrollment?.total_paid) + diff).toFixed(2),
+        },
+        session,
+      );
 
       const data = await moneyReceiptService.update(
         _id as string,
@@ -391,18 +484,48 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
       if (!oldAccount) customError('Old Account Not Found', 404);
 
+      const accountTransaction = await accountTransactionService.findOne({
+        key: { money_receipt_id: findSingle._id?.toString() },
+      });
+
+      if (!accountTransaction) {
+        customError('Transaction not found', 404);
+      }
+
       await accountService.update(
         oldAccId,
         {
           available_balance: (
             Number(oldAccount?.available_balance || 0) -
-            Number(findSingle.amount || 0)
+            (Number(findSingle.amount || 0) -
+              Number(accountTransaction?.charge || 0))
           ).toFixed(2),
         },
         session,
       );
 
-      await moneyReceiptService.deleteItem(_id as string);
+      const enrollment = await enrollmentService
+        .findOne({
+          key: { _id: findSingle?.enrollment_id.toString() },
+        })
+        .session(session || null);
+
+      if (!enrollment) customError('Enrollment Not Found', 404);
+
+      await enrollmentService.update(
+        `${enrollment?._id}`,
+        {
+          total_paid: (
+            Number(enrollment?.total_paid) - Number(findSingle.amount)
+          ).toFixed(2),
+        },
+        session,
+      );
+
+      await moneyReceiptService.deleteItem(_id as string).session(session);
+      await accountTransactionService
+        .deleteItem(`${accountTransaction?._id}`)
+        .session(session);
     });
 
     await auditLogService.create({

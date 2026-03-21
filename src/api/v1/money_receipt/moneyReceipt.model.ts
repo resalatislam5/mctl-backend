@@ -41,6 +41,11 @@ const MoneyReceiptSchema = new Schema<ICreateMoneyReceipt>(
       trim: true,
       default: '0',
     },
+    charge: {
+      type: String,
+      trim: true,
+      default: '0',
+    },
     date: {
       type: String,
       trim: true,

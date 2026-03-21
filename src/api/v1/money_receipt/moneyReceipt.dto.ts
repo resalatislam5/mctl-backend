@@ -8,6 +8,7 @@ export interface ICreateMoneyReceipt extends Document {
   amount: string;
   paid_amount: string;
   voucher_no: string;
+  charge: string;
   date: string;
 }
 export interface IMoneyReceiptList {
@@ -18,6 +19,7 @@ export interface IMoneyReceiptList {
   student_id: string;
   amount: string;
   voucher_no: string;
+  charge: string;
   paid_amount: string;
   date: string;
 }

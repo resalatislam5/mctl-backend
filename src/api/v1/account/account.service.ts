@@ -42,6 +42,7 @@ const create = ({
   branch_name,
   opening_balance,
   available_balance,
+  charge_percent,
   status,
 }: IAccountList) => {
   const account = new Account({
@@ -52,6 +53,7 @@ const create = ({
     branch_name,
     opening_balance,
     available_balance,
+    charge_percent,
     status,
   });
   return account.save();
