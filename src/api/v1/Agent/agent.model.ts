@@ -32,16 +32,12 @@ const AgentSchema = new Schema<ICreateAgent>(
       required: true,
       trim: true,
     },
-    total_amount: {
+    min_payment_percent: {
       type: String,
       trim: true,
       default: '0',
     },
-    paid_amount: {
-      type: String,
-      trim: true,
-      default: '0',
-    },
+
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE'],

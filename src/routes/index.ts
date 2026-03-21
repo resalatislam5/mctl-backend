@@ -31,7 +31,7 @@ router.use('/v1/config/upazila', upazilaRoutes);
 router.use('/v1/config/module', moduleRoutes);
 router.use('/v1/config/batch', batchRoutes);
 router.use('/v1/config/course', courseRoutes);
-router.use('/v1/config/agent', agentRoutes);
+router.use('/v1/agent', agentRoutes);
 router.use('/v1/config/package', packageRoutes);
 router.use('/v1/config/role', roleRoutes);
 router.use('/v1', authRoutes);

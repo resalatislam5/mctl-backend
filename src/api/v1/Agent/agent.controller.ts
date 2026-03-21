@@ -47,8 +47,15 @@ const findSingle = async (
 };
 
 const create = async (req: Request, res: Response, next: NextFunction) => {
-  const { name, email, mobile_no, min_limit, commission, status } =
-    req.body as IAgentList;
+  const {
+    name,
+    email,
+    mobile_no,
+    min_limit,
+    commission,
+    min_payment_percent,
+    status,
+  } = req.body as IAgentList;
   try {
     const data = await agentService.create({
       name,
@@ -56,6 +63,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       mobile_no,
       min_limit,
       commission,
+      min_payment_percent,
       status,
     });
 
@@ -80,8 +88,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
 
 const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
-  const { name, email, mobile_no, min_limit, commission, status } =
-    req.body as IAgentList;
+  const {
+    name,
+    email,
+    mobile_no,
+    min_limit,
+    commission,
+    min_payment_percent,
+    status,
+  } = req.body as IAgentList;
   try {
     checkMongooseId(_id as string);
 
@@ -98,6 +113,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       mobile_no,
       min_limit,
       commission,
+      min_payment_percent,
       status,
     });
 

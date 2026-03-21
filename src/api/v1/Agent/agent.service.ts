@@ -35,7 +35,7 @@ const create = ({
   mobile_no,
   min_limit,
   commission,
-
+  min_payment_percent,
   status,
 }: IAgentList) => {
   const oldAgent = User.findOne({ email });
@@ -47,7 +47,7 @@ const create = ({
     mobile_no,
     min_limit,
     commission,
-
+    min_payment_percent,
     status,
   });
   return agent.save();
