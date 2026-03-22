@@ -20,7 +20,7 @@ export interface IAccountTransactionList {
   type: 'CREDIT' | 'DEBIT';
   amount: String;
   voucher_no: String;
-  charge: String;
+  charge?: String;
   description: String;
   date?: String;
 }

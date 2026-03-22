@@ -10,6 +10,7 @@ import expenseHistoryService from './expenseHistory.service';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
 import { withTransaction } from '../../../utils/withTransaction';
 import accountService from '../account/account.service';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -154,6 +155,20 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         total_amount,
         voucher_no,
       });
+
+      await accountTransactionService.create(
+        {
+          account_id: acc_id,
+          reference_type: 'ExpenseHistory',
+          reference_id: data?._id,
+          voucher_no: data?.voucher_no,
+          amount: total_amount,
+          type: 'DEBIT',
+          description: `Paid ${total_amount} for multiple expenses via ${account_type}`,
+        },
+        session,
+      );
+
       return data;
     });
 
@@ -199,15 +214,14 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         customError('Account not found', 404);
       }
 
-      const net_total_amount =
+      const diff =
         Number(findSingle.total_amount || 0) - Number(total_amount || 0);
-      console.log('net_total_amount', net_total_amount);
 
       await accountService.update(
         acc_id,
         {
           available_balance: (
-            Number(account?.available_balance || 0) + net_total_amount
+            Number(account?.available_balance || 0) + diff
           ).toFixed(2),
         },
         session,
@@ -222,6 +236,24 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           expense_details,
           note,
           total_amount,
+        },
+        session,
+      );
+
+      const accountTransaction = await accountTransactionService
+        .findOne({
+          key: { reference_id: findSingle._id },
+        })
+        .session(session);
+
+      await accountTransactionService.update(
+        `${accountTransaction?._id}`,
+        {
+          account_id: acc_id,
+          money_receipt_id: findSingle?._id.toString(),
+          amount: total_amount,
+          type: 'DEBIT',
+          description: `Paid ${total_amount} for multiple expenses via ${account_type}`,
         },
         session,
       );
@@ -274,12 +306,23 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
         `${findSingle.acc_id}`,
         {
           available_balance: (
-            Number(account?.available_balance || 0) -
+            Number(account?.available_balance || 0) +
             Number(findSingle.total_amount || 0)
           ).toFixed(2),
         },
         session,
       );
+
+      const accountTransaction = await accountTransactionService.findOne({
+        key: { reference_id: findSingle._id },
+      });
+
+      if (!accountTransaction) {
+        customError('Transaction not found', 404);
+      }
+      await accountTransactionService
+        .deleteItem(`${accountTransaction?._id}`)
+        .session(session);
 
       await expenseHistoryService.deleteItem(_id as string).session(session);
       await auditLogService.create({
