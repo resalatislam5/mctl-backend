@@ -234,7 +234,9 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       await accountTransactionService.create(
         {
           account_id: acc_id,
-          money_receipt_id: data?._id.toString(),
+          reference_type: 'MoneyReceipt',
+          reference_id: data?._id,
+          voucher_no: data?.voucher_no,
           amount: (Number(amount) - charge).toFixed(2),
           charge: charge.toFixed(2),
           type: 'CREDIT',
@@ -297,7 +299,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       const newAmount = Number(amount || 0);
 
       const accountTransaction = await accountTransactionService.findOne({
-        key: { money_receipt_id: findSingle._id?.toString() },
+        key: { reference_id: findSingle._id },
       });
 
       if (!accountTransaction) {
@@ -349,10 +351,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           `${accountTransaction?._id}`,
           {
             account_id: newAccId,
-            money_receipt_id: findSingle?._id.toString(),
             amount: (newAmount - charge).toFixed(2),
             charge: charge.toFixed(2),
-            type: 'CREDIT',
             description: `Payment from student (${student_id}) via ${payment_method}`,
           },
           session,
@@ -485,7 +485,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       if (!oldAccount) customError('Old Account Not Found', 404);
 
       const accountTransaction = await accountTransactionService.findOne({
-        key: { money_receipt_id: findSingle._id?.toString() },
+        key: { reference_id: findSingle._id },
       });
 
       if (!accountTransaction) {

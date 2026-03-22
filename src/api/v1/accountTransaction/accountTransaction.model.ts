@@ -4,17 +4,18 @@ import { ICreateAccountTransaction } from './accountTransaction.dto';
 const AccountTransactionSchema = new Schema<ICreateAccountTransaction>(
   {
     account_id: { type: Types.ObjectId, required: true, ref: 'Account' },
-    money_receipt_id: {
-      type: Types.ObjectId,
-      ref: 'MoneyReceipt',
+    voucher_no: { type: String, required: true },
+    reference_type: {
+      type: String,
+      enum: ['MoneyReceipt', 'Agent', 'ExpenseHistory'],
       default: null,
     },
-    agent_id: { type: Types.ObjectId, ref: 'Agent', default: null },
-    expense_id: {
+    reference_id: {
       type: Types.ObjectId,
-      ref: 'ExpenseHistory',
+      refPath: 'reference_type',
       default: null,
     },
+
     type: { type: String, enum: ['CREDIT', 'DEBIT'], required: true },
     amount: { type: String, required: true },
     charge: { type: String, default: '0' },

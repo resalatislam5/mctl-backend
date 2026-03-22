@@ -5,11 +5,31 @@ import {
 } from './accountTransaction.dto';
 import AccountTransaction from './accountTransaction.model';
 
-const findAll = ({ account_id }: IAccountTransactionFindAllParams) => {
+const findAll = ({
+  account_id,
+  from_date,
+  to_date,
+}: IAccountTransactionFindAllParams) => {
   const query: any = {};
 
   if (account_id) {
     query.account_id = account_id;
+  }
+
+  if (from_date || to_date) {
+    const dateFilter: any = {};
+
+    if (from_date) {
+      dateFilter.$gte = new Date(from_date);
+    }
+
+    if (to_date) {
+      const toDate = new Date(to_date);
+      toDate.setHours(23, 59, 59, 999); // include entire day
+      dateFilter.$lte = toDate;
+    }
+
+    query.createdAt = dateFilter;
   }
   return AccountTransaction.find(query);
 };
@@ -17,26 +37,26 @@ const findAll = ({ account_id }: IAccountTransactionFindAllParams) => {
 const create = (
   {
     account_id,
-    agent_id,
     amount,
     charge,
     date,
     description,
-    expense_id,
-    money_receipt_id,
+    reference_type,
+    reference_id,
+    voucher_no,
     type,
   }: IAccountTransactionList,
   session: ClientSession | null,
 ) => {
   const data = new AccountTransaction({
     account_id,
-    agent_id,
     amount,
     charge,
     date,
     description,
-    expense_id,
-    money_receipt_id,
+    reference_type,
+    reference_id,
+    voucher_no,
     type,
   });
   return data.save({ session });
