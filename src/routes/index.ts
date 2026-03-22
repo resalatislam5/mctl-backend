@@ -22,6 +22,7 @@ import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
 import ReportRoutes from './reportRoutes';
 import agentCommissionRoutes from './agentCommissionRoutes';
+import agentPaymentRoutes from './agnetPaymentRoutes';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -34,6 +35,7 @@ router.use('/v1/config/batch', batchRoutes);
 router.use('/v1/config/course', courseRoutes);
 router.use('/v1/agent', agentRoutes);
 router.use('/v1/agent-commission', agentCommissionRoutes);
+router.use('/v1/agent-payment', agentPaymentRoutes);
 router.use('/v1/config/package', packageRoutes);
 router.use('/v1/config/role', roleRoutes);
 router.use('/v1', authRoutes);

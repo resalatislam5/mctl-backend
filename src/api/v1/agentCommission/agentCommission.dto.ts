@@ -12,7 +12,7 @@ export interface ICreateAgentCommission extends Document {
   status: 'PENDING' | 'APPROVED' | 'PAID';
 }
 export interface IAgentCommissionList {
-  _id?: string;
+  _id?: string | Types.ObjectId;
   agent_id: string;
   batch_id: string;
   total_students: number;

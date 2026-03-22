@@ -446,9 +446,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           `${mainTx?._id}`,
           {
             account_id: newAccId,
-            money_receipt_id: findSingle?._id.toString(),
+            reference_type: 'MoneyReceipt',
+            reference_id: findSingle?._id,
             amount: (Number(mainTx?.amount || 0) + diff - charge).toFixed(2),
-
             type: 'CREDIT',
             description: `Payment from student (${student_id}) via ${payment_method}`,
           },

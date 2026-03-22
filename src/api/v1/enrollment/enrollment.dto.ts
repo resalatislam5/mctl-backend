@@ -25,7 +25,7 @@ export interface ICreateEnrollment extends Document {
   installment_date: { name: string; date: Date }[];
 }
 export interface IEnrollmentList {
-  _id?: string;
+  _id?: string | Types.ObjectId;
   code: string;
   student_id: Types.ObjectId;
   batch_id: Types.ObjectId;

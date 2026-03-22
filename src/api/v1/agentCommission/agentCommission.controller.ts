@@ -203,10 +203,45 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await agentCommissionService
-      .findAll({ status: 'PENDING' })
-      .select('name email _id');
-    res.json({ success: true, data });
+    const query: any = {};
+    const agent_id = req.query?.agent_id?.toString() || '';
+
+    if (agent_id) {
+      query.agent_id = convertObjectID(agent_id);
+    }
+    const data = await agentCommissionService.aggregate([
+      {
+        $match: query,
+      },
+
+      {
+        $lookup: {
+          from: 'batches',
+          localField: 'batch_id',
+          foreignField: '_id',
+          as: 'batch',
+        },
+      },
+      {
+        $addFields: {
+          batch_no: {
+            $ifNull: [{ $arrayElemAt: ['$batch.batch_no', 0] }, null],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          commission_amount: 1,
+          paid_amount: 1,
+          batch_no: 1,
+        },
+      },
+    ]);
+    res.json({
+      success: true,
+      data: data,
+    });
   } catch (err) {
     next(err);
   }

@@ -1,434 +1,530 @@
-// import { NextFunction, Request, Response } from 'express';
-// import { IParams } from '../../../types/commonTypes';
-// import { checkMongooseId } from '../../../utils/checkMongooseId';
-// import { convertObjectID } from '../../../utils/ConvertObjectID';
-// import { customError } from '../../../utils/customError';
-// import { detectChanges } from '../../../utils/detectChanges';
-// import { withTransaction } from '../../../utils/withTransaction';
-// import accountService from '../account/account.service';
-// import auditLogService from '../auditLog/auditLog.service';
-// import { generateCode } from '../counter/generateCode';
-// import enrollmentService from '../enrollment/enrollment.service';
-// import { IMoneyReceiptList } from './moneyReceipt.dto';
-// import moneyReceiptService from './moneyReceipt.service';
+import { NextFunction, Request, Response } from 'express';
+import { IParams } from '../../../types/commonTypes';
+import { checkMongooseId } from '../../../utils/checkMongooseId';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
+import { customError } from '../../../utils/customError';
+import { detectChanges } from '../../../utils/detectChanges';
+import { withTransaction } from '../../../utils/withTransaction';
+import accountService from '../account/account.service';
+import auditLogService from '../auditLog/auditLog.service';
+import { generateCode } from '../counter/generateCode';
+import enrollmentService from '../enrollment/enrollment.service';
+import agentPaymentService from './agentPayment.service';
+import { IAgentPaymentList } from './agentPayment.dto';
+import agentCommissionService from '../agentCommission/agentCommission.service';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
 
-// const findAll = async (req: Request, res: Response, next: NextFunction) => {
-//   const query: any = {};
-//   const search = req.query.search?.toString() || '';
-//   const student_id = req.query.student_id?.toString() || '';
-//   const limit = Number(req.query.limit || 100);
-//   const skip = Number(req.query.skip || 0);
+const findAll = async (req: Request, res: Response, next: NextFunction) => {
+  const query: any = {};
+  const search = req.query.search?.toString() || '';
+  const student_id = req.query.student_id?.toString() || '';
+  const limit = Number(req.query.limit || 100);
+  const skip = Number(req.query.skip || 0);
 
-//   if (student_id) {
-//     query.student_id = convertObjectID(student_id);
-//   }
-//   try {
-//     const data = await moneyReceiptService.aggregate([
-//       {
-//         $match: query,
-//       },
-//       {
-//         $lookup: {
-//           from: 'students',
-//           localField: 'student_id',
-//           foreignField: '_id',
-//           as: 'student',
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: 'enrollments',
-//           localField: 'enrollment_id',
-//           foreignField: '_id',
-//           as: 'enrollment',
-//         },
-//       },
-//       {
-//         $unwind: {
-//           path: '$enrollment',
-//           preserveNullAndEmptyArrays: true,
-//         },
-//       },
+  if (student_id) {
+    query.student_id = convertObjectID(student_id);
+  }
+  try {
+    const data = await agentPaymentService.aggregate([
+      {
+        $match: query,
+      },
 
-//       {
-//         $lookup: {
-//           from: 'batches',
-//           localField: 'enrollment.batch_id',
-//           foreignField: '_id',
-//           as: 'batch',
-//         },
-//       },
+      {
+        $lookup: {
+          from: 'agentcommissions',
+          localField: 'commission_id',
+          foreignField: '_id',
+          as: 'agentCommission',
+        },
+      },
+      {
+        $unwind: {
+          path: '$agentCommission',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
 
-//       {
-//         $addFields: {
-//           student_name: {
-//             $ifNull: [{ $arrayElemAt: ['$student.name', 0] }, null],
-//           },
-//           batch_no: {
-//             $ifNull: [{ $arrayElemAt: ['$batch.batch_no', 0] }, null],
-//           },
-//         },
-//       },
-//       {
-//         $skip: skip,
-//       },
-//       {
-//         $limit: limit,
-//       },
-//       {
-//         $sort: { createdAt: -1 },
-//       },
-//       {
-//         $facet: {
-//           data: [
-//             {
-//               $project: {
-//                 student: 0,
-//                 batch: 0,
-//                 enrollment: 0,
-//               },
-//             },
-//           ],
-//           totalCount: [{ $count: 'count' }],
-//         },
-//       },
-//     ]);
-//     res.json({
-//       success: true,
-//       total: data[0]?.totalCount[0]?.count,
-//       data: data[0]?.data,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+      {
+        $lookup: {
+          from: 'batches',
+          localField: 'agentCommission.batch_id',
+          foreignField: '_id',
+          as: 'batch',
+        },
+      },
+      {
+        $lookup: {
+          from: 'accounts',
+          localField: 'acc_id',
+          foreignField: '_id',
+          as: 'account',
+        },
+      },
 
-// const findSingle = async (
-//   req: Request<IParams>,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   const { _id } = req.params;
-//   try {
-//     checkMongooseId(_id);
+      {
+        $addFields: {
+          batch_no: {
+            $ifNull: [{ $arrayElemAt: ['$batch.batch_no', 0] }, null],
+          },
+          acc_name: {
+            $ifNull: [{ $arrayElemAt: ['$account.name', 0] }, null],
+          },
+        },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $project: {
+                date: 1,
+                batch_no: 1,
+                voucher_no: 1,
+                payment_method: 1,
+                acc_name: 1,
+                amount: 1,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ]);
+    res.json({
+      success: true,
+      total: data[0]?.totalCount[0]?.count,
+      data: data[0]?.data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
-//     const data = await moneyReceiptService.aggregate([
-//       { $match: { _id: convertObjectID(_id) } },
-//       {
-//         $lookup: {
-//           from: 'students',
-//           localField: 'student_id',
-//           foreignField: '_id',
-//           as: 'student',
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: 'enrollments',
-//           localField: 'enrollment_id',
-//           foreignField: '_id',
-//           as: 'enrollment',
-//         },
-//       },
-//       {
-//         $addFields: {
-//           student_name: {
-//             $ifNull: [{ $arrayElemAt: ['$student.name', 0] }, null],
-//           },
-//           student_code: {
-//             $ifNull: [{ $arrayElemAt: ['$student.code', 0] }, null],
-//           },
-//           enrollment_code: {
-//             $ifNull: [{ $arrayElemAt: ['$enrollment.code', 0] }, null],
-//           },
-//           total_amount: {
-//             $ifNull: [{ $arrayElemAt: ['$enrollment.total_amount', 0] }, null],
-//           },
-//           course_type: {
-//             $ifNull: [{ $arrayElemAt: ['$enrollment.course_type', 0] }, null],
-//           },
-//         },
-//       },
-//       {
-//         $project: {
-//           student: 0,
-//           enrollment: 0,
-//         },
-//       },
-//     ]);
-//     if (!data) {
-//       customError('Money receipt not found', 404);
-//     }
-//     res.json({ success: true, data: data?.[0] });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+const findSingle = async (
+  req: Request<IParams>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { _id } = req.params;
+  try {
+    checkMongooseId(_id);
 
-// const create = async (req: Request, res: Response, next: NextFunction) => {
-//   const { acc_id, amount, enrollment_id, payment_method, student_id, date } =
-//     req.body as IMoneyReceiptList;
-//   try {
-//     const data = await withTransaction(async (session) => {
-//       const account = await accountService
-//         .findOne({
-//           key: { _id: acc_id },
-//         })
-//         .session(session || null);
-//       if (!account) customError('Account Not Found', 404);
-//       await accountService.update(
-//         acc_id,
-//         {
-//           available_balance: (
-//             Number(account?.available_balance) + Number(amount)
-//           ).toFixed(2),
-//         },
-//         session,
-//       );
+    const data = await agentPaymentService.aggregate([
+      { $match: { _id: convertObjectID(_id) } },
+      {
+        $lookup: {
+          from: 'agents',
+          localField: 'agent_id',
+          foreignField: '_id',
+          as: 'agent',
+        },
+      },
+      {
+        $lookup: {
+          from: 'agentcommissions',
+          localField: 'commission_id',
+          foreignField: '_id',
+          as: 'commission',
+        },
+      },
+      {
+        $lookup: {
+          from: 'batches',
+          localField: 'commission.batch_id',
+          foreignField: '_id',
+          as: 'batch',
+        },
+      },
+      {
+        $addFields: {
+          agent_name: {
+            $ifNull: [{ $arrayElemAt: ['$agent.name', 0] }, null],
+          },
+          batch_no: {
+            $ifNull: [{ $arrayElemAt: ['$batch.batch_no', 0] }, null],
+          },
 
-//       const enrollment = await enrollmentService
-//         .findOne({
-//           key: { _id: enrollment_id },
-//         })
-//         .session(session || null);
+          commission_amount: {
+            $ifNull: [
+              { $arrayElemAt: ['$commission.commission_amount', 0] },
+              null,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          agent: 0,
+          commission: 0,
+          batch: 0,
+        },
+      },
+    ]);
+    if (!data) {
+      customError('Agent payment not found', 404);
+    }
+    res.json({ success: true, data: data?.[0] });
+  } catch (err) {
+    next(err);
+  }
+};
 
-//       if (!enrollment) customError('Enrollment Not Found', 404);
+const create = async (req: Request, res: Response, next: NextFunction) => {
+  const {
+    acc_id,
+    amount,
+    payment_method,
+    date,
+    agent_id,
+    commission_id,
+    note,
+    reference_no,
+  } = req.body as IAgentPaymentList;
+  try {
+    const data = await withTransaction(async (session) => {
+      const account = await accountService
+        .findOne({
+          key: { _id: acc_id },
+        })
+        .session(session || null);
+      if (!account) customError('Account Not Found', 404);
+      await accountService.update(
+        acc_id,
+        {
+          available_balance: (
+            Number(account?.available_balance) - Number(amount)
+          ).toFixed(2),
+        },
+        session,
+      );
 
-//       await enrollmentService.update(
-//         `${enrollment?._id}`,
-//         {
-//           total_paid: (Number(enrollment?.total_paid) + Number(amount)).toFixed(
-//             2,
-//           ),
-//         },
-//         session,
-//       );
+      const commission = await agentCommissionService
+        .findOne({
+          key: { _id: commission_id },
+        })
+        .session(session || null);
 
-//       const voucher_no = await generateCode('money_receipt', 'MR', session);
-//       const data = await moneyReceiptService.create(
-//         {
-//           acc_id,
-//           amount,
-//           enrollment_id,
-//           payment_method,
-//           voucher_no,
-//           student_id,
-//           date,
-//           paid_amount: (
-//             Number(enrollment?.total_paid || 0) + Number(amount || 0)
-//           ).toFixed(2),
-//         },
-//         session,
-//       );
+      if (!commission) customError('Commission Not Found', 404);
+      console.log('commission', commission);
 
-//       // throw new Error('Custom error');
-//       await auditLogService.create({
-//         req,
-//         user: req.user,
-//         action: 'CREATE',
-//         entity: 'Money Receipt',
-//         entity_id: data?._id?.toString() as string,
-//         description: `A new money receipt has been created money_receipt_id: ${data?._id?.toString()}`,
-//       });
-//       return data;
-//     });
-//     res.json({
-//       success: true,
-//       message: 'Money receipt created successfully',
-//       data,
-//     });
-//   } catch (err) {
-//     console.log(err);
+      await agentCommissionService.update(
+        `${commission?._id}`,
+        {
+          paid_amount: (
+            Number(commission?.paid_amount || 0) + Number(amount || 0)
+          ).toFixed(2),
+        },
+        session,
+      );
 
-//     next(err);
-//   }
-// };
+      const voucher_no = await generateCode('agent_payment', 'ANR', session);
+      const data = await agentPaymentService.create(
+        {
+          acc_id,
+          amount,
+          agent_id,
+          commission_id,
+          note,
+          reference_no,
+          payment_method,
+          voucher_no,
+          date,
+          paid_amount: (
+            Number(commission?.paid_amount || 0) + Number(amount || 0)
+          ).toFixed(2),
+        },
+        session,
+      );
 
-// const update = async (req: Request, res: Response, next: NextFunction) => {
-//   const { _id } = req.params;
-//   const {
-//     acc_id,
-//     amount,
-//     enrollment_id,
-//     paid_amount,
-//     payment_method,
-//     voucher_no,
-//     student_id,
-//     date,
-//   } = req.body as IMoneyReceiptList;
+      await accountTransactionService.create(
+        {
+          account_id: acc_id,
+          reference_type: 'AgentPayment',
+          reference_id: data?._id,
+          voucher_no: data?.voucher_no,
+          amount: amount,
+          type: 'DEBIT',
+          description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
+        },
+        session,
+      );
 
-//   try {
-//     checkMongooseId(_id as string);
+      // throw new Error('Custom error');
+      await auditLogService.create({
+        req,
+        user: req.user,
+        action: 'CREATE',
+        entity: 'Agent Payment',
+        entity_id: data?._id?.toString() as string,
+        description: `A new agent payment has been created agent_payment_id: ${data?._id?.toString()}`,
+      });
+      return data;
+    });
+    res.json({
+      success: true,
+      message: 'Agent payment created successfully',
+      data,
+    });
+  } catch (err) {
+    console.log(err);
 
-//     const findSingle = await moneyReceiptService.findOne({
-//       key: { _id: _id as string },
-//     });
-//     if (!findSingle) {
-//       return customError('Money receipt not found', 404);
-//     }
+    next(err);
+  }
+};
 
-//     const data = await withTransaction(async (session) => {
-//       const oldAccId = findSingle.acc_id.toString();
-//       const newAccId = acc_id;
+const update = async (req: Request, res: Response, next: NextFunction) => {
+  const { _id } = req.params;
+  const {
+    acc_id,
+    amount,
+    agent_id,
+    commission_id,
+    reference_no,
+    note,
+    paid_amount,
+    payment_method,
+    date,
+  } = req.body as IAgentPaymentList;
 
-//       const oldAmount = Number(findSingle.amount || 0);
-//       const newAmount = Number(amount || 0);
+  try {
+    checkMongooseId(_id as string);
 
-//       if (oldAccId !== newAccId) {
-//         const oldAccount = await accountService
-//           .findOne({ key: { _id: oldAccId } })
-//           .session(session || null);
+    const findSingle = await agentPaymentService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Agent payment not found', 404);
+    }
 
-//         if (!oldAccount) customError('Old Account Not Found', 404);
+    const data = await withTransaction(async (session) => {
+      const oldAccId = findSingle.acc_id.toString();
+      const newAccId = acc_id.toString();
 
-//         await accountService.update(
-//           oldAccId,
-//           {
-//             available_balance: (
-//               Number(oldAccount?.available_balance || 0) - oldAmount
-//             ).toFixed(2),
-//           },
-//           session,
-//         );
+      const oldAmount = Number(findSingle.amount || 0);
+      const newAmount = Number(amount || 0);
 
-//         const newAccount = await accountService
-//           .findOne({ key: { _id: newAccId } })
-//           .session(session || null);
+      const mainTx = await accountTransactionService
+        .findOne({
+          key: { reference_id: findSingle._id, type: 'DEBIT' },
+        })
+        .session(session);
 
-//         if (!newAccount) customError('New Account Not Found', 404);
+      if (!mainTx) {
+        customError('Transaction not found', 404);
+      }
 
-//         await accountService.update(
-//           newAccId,
-//           {
-//             available_balance: (
-//               Number(newAccount?.available_balance || 0) + newAmount
-//             ).toFixed(2),
-//           },
-//           session,
-//         );
-//       } else {
-//         const diff = newAmount - oldAmount;
+      if (oldAccId !== newAccId) {
+        const oldAccount = await accountService
+          .findOne({ key: { _id: oldAccId } })
+          .session(session || null);
 
-//         const account = await accountService
-//           .findOne({ key: { _id: newAccId } })
-//           .session(session || null);
+        if (!oldAccount) customError('Old Account Not Found', 404);
 
-//         if (!account) customError('Account Not Found', 404);
+        await accountService.update(
+          oldAccId,
+          {
+            available_balance: (
+              Number(oldAccount?.available_balance || 0) + oldAmount
+            ).toFixed(2),
+          },
+          session,
+        );
 
-//         await accountService.update(
-//           newAccId,
-//           {
-//             available_balance: (
-//               Number(account?.available_balance || 0) + diff
-//             ).toFixed(2),
-//           },
-//           session,
-//         );
-//       }
+        const newAccount = await accountService
+          .findOne({ key: { _id: newAccId } })
+          .session(session || null);
 
-//       const data = await moneyReceiptService.update(
-//         _id as string,
-//         {
-//           acc_id,
-//           amount,
-//           enrollment_id,
-//           paid_amount,
-//           payment_method,
-//           voucher_no,
-//           student_id,
-//           date,
-//         },
-//         session,
-//       );
-//       return data;
-//     });
+        if (!newAccount) customError('New Account Not Found', 404);
 
-//     const compareChange = detectChanges(
-//       findSingle.toObject(),
-//       data?.toObject(),
-//     );
+        await accountService.update(
+          newAccId,
+          {
+            available_balance: (
+              Number(newAccount?.available_balance || 0) - newAmount
+            ).toFixed(2),
+          },
+          session,
+        );
+        await accountTransactionService.update(
+          `${mainTx?._id}`,
+          {
+            account_id: newAccId,
+            amount: newAmount.toFixed(2),
+            description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
+          },
+          session,
+        );
+      } else {
+        const diff = newAmount - oldAmount;
 
-//     await auditLogService.create({
-//       req,
-//       user: req.user,
-//       action: 'UPDATE',
-//       entity: 'Money Receipt',
-//       entity_id: _id as string,
-//       changes: compareChange,
-//       description: `A new money receipt has been updated money_receipt_id: ${_id}`,
-//     });
+        const account = await accountService
+          .findOne({ key: { _id: newAccId } })
+          .session(session || null);
 
-//     res.json({
-//       success: true,
-//       message: 'Money receipt updated successfully',
-//       data: data,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+        if (!account) customError('Account Not Found', 404);
 
-// const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
-//   const { _id } = req.params;
+        await accountService.update(
+          newAccId,
+          {
+            available_balance: (
+              Number(account?.available_balance || 0) - diff
+            ).toFixed(2),
+          },
+          session,
+        );
+        await accountTransactionService.update(
+          `${mainTx?._id}`,
+          {
+            account_id: newAccId,
+            amount: amount,
+            description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
+          },
+          session,
+        );
+      }
 
-//   try {
-//     checkMongooseId(_id as string);
+      const data = await agentPaymentService.update(
+        _id as string,
+        {
+          acc_id,
+          amount,
+          agent_id,
+          commission_id,
+          note,
+          reference_no,
+          paid_amount,
+          payment_method,
+          date,
+        },
+        session,
+      );
 
-//     const findSingle = await moneyReceiptService.findOne({
-//       key: { _id: _id as string },
-//     });
-//     if (!findSingle) {
-//       return customError('Money receipt not found', 404);
-//     }
+      return data;
+    });
 
-//     await withTransaction(async (session) => {
-//       const oldAccId = findSingle.acc_id.toString();
+    const compareChange = detectChanges(
+      findSingle.toObject(),
+      data?.toObject(),
+    );
 
-//       const oldAccount = await accountService
-//         .findOne({ key: { _id: oldAccId } })
-//         .session(session || null);
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'Agent Payment',
+      entity_id: _id as string,
+      changes: compareChange,
+      description: `A new agent payment has been updated agent_payment_id: ${_id}`,
+    });
 
-//       if (!oldAccount) customError('Old Account Not Found', 404);
+    res.json({
+      success: true,
+      message: 'Agent payment updated successfully',
+      data: data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
-//       await accountService.update(
-//         oldAccId,
-//         {
-//           available_balance: (
-//             Number(oldAccount?.available_balance || 0) -
-//             Number(findSingle.amount || 0)
-//           ).toFixed(2),
-//         },
-//         session,
-//       );
+const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
+  const { _id } = req.params;
 
-//       await moneyReceiptService.deleteItem(_id as string);
-//     });
+  try {
+    checkMongooseId(_id as string);
 
-//     await auditLogService.create({
-//       req,
-//       user: req.user,
-//       action: 'DELETE',
-//       entity: 'Money Receipt',
-//       entity_id: _id as string,
-//       changes: findSingle,
-//       description: `A new money receipt has been deleted money_receipt_id: ${_id}`,
-//     });
-//     res.json({
-//       success: true,
-//       message: 'Money Receipt deleted successfully',
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+    const findSingle = await agentPaymentService.findOne({
+      key: { _id: _id as string },
+    });
+    if (!findSingle) {
+      return customError('Agent payment not found', 404);
+    }
 
-// const select = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const data = await moneyReceiptService.findAll({}).select('voucher_no _id');
-//     res.json({ success: true, data });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+    await withTransaction(async (session) => {
+      const oldAccId = findSingle.acc_id.toString();
+      const mainTx = await accountTransactionService
+        .findOne({
+          key: { reference_id: findSingle._id, type: 'DEBIT' },
+        })
+        .session(session);
 
-// export default { findAll, create, findSingle, update, deleteItem, select };
+      const oldAccount = await accountService
+        .findOne({ key: { _id: oldAccId } })
+        .session(session || null);
+
+      if (!oldAccount) customError('Old Account Not Found', 404);
+
+      await accountService.update(
+        oldAccId,
+        {
+          available_balance: (
+            Number(oldAccount?.available_balance || 0) +
+            Number(findSingle.amount || 0)
+          ).toFixed(2),
+        },
+        session,
+      );
+
+      const commission = await agentCommissionService
+        .findOne({
+          key: { _id: findSingle?.commission_id },
+        })
+        .session(session || null);
+
+      if (!commission) customError('Commission Not Found', 404);
+      console.log('commission', commission);
+
+      await agentCommissionService.update(
+        `${commission?._id}`,
+        {
+          paid_amount: (
+            Number(commission?.paid_amount || 0) -
+            Number(findSingle?.amount || 0)
+          ).toFixed(2),
+        },
+        session,
+      );
+
+      await agentPaymentService.deleteItem(_id as string).session(session);
+      await accountTransactionService
+        .deleteItem(`${mainTx?._id}`)
+        .session(session);
+    });
+
+    await auditLogService.create({
+      req,
+      user: req.user,
+      action: 'DELETE',
+      entity: 'Agent payment',
+      entity_id: _id as string,
+      changes: findSingle,
+      description: `A new Agent payment has been deleted agent_payment_id: ${_id}`,
+    });
+    res.json({
+      success: true,
+      message: 'Agent payment deleted successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const select = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await agentPaymentService.findAll({}).select('voucher_no _id');
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default { findAll, create, findSingle, update, deleteItem, select };

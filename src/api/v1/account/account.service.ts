@@ -1,4 +1,4 @@
-import { ClientSession } from 'mongoose';
+import { ClientSession, Types } from 'mongoose';
 import { IAccountFindAllParams, IAccountList } from './account.dto';
 import Account from './account.model';
 import { UpdateQuery } from 'mongoose';
@@ -60,7 +60,7 @@ const create = ({
 };
 
 const update = (
-  _id: string,
+  _id: string | Types.ObjectId,
   data: UpdateQuery<IAccountList>,
   session?: ClientSession | null,
 ) => {

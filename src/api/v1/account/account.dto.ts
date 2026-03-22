@@ -1,4 +1,4 @@
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export interface ICreateAccount extends Document {
   account_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
@@ -12,7 +12,7 @@ export interface ICreateAccount extends Document {
   status: 'ACTIVE' | 'INACTIVE';
 }
 export interface IAccountList {
-  _id?: string;
+  _id?: string | Types.ObjectId;
   account_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
   name: string;
   acc_number: string;
