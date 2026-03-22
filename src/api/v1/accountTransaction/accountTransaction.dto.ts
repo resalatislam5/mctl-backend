@@ -2,7 +2,7 @@ import { Document, Types } from 'mongoose';
 
 export interface ICreateAccountTransaction extends Document {
   account_id: Types.ObjectId;
-  reference_type?: 'MoneyReceipt' | 'Agent' | 'ExpenseHistory';
+  reference_type?: 'MoneyReceipt' | 'Agent' | 'ExpenseHistory' | 'Account';
   reference_id?: Types.ObjectId;
   type: 'CREDIT' | 'DEBIT';
   amount: String;
@@ -12,8 +12,8 @@ export interface ICreateAccountTransaction extends Document {
 }
 export interface IAccountTransactionList {
   _id?: string;
-  account_id: String;
-  reference_type?: 'MoneyReceipt' | 'Agent' | 'ExpenseHistory';
+  account_id: String | Types.ObjectId;
+  reference_type?: 'MoneyReceipt' | 'Agent' | 'ExpenseHistory' | 'Account';
   reference_id?: Types.ObjectId;
   type: 'CREDIT' | 'DEBIT';
   amount: String;

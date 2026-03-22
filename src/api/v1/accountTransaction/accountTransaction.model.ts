@@ -7,7 +7,7 @@ const AccountTransactionSchema = new Schema<ICreateAccountTransaction>(
     voucher_no: { type: String, required: true },
     reference_type: {
       type: String,
-      enum: ['MoneyReceipt', 'Agent', 'ExpenseHistory'],
+      enum: ['MoneyReceipt', 'Agent', 'ExpenseHistory', 'Account'],
       default: null,
     },
     reference_id: {

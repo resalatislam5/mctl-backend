@@ -1,4 +1,4 @@
-import { ClientSession, UpdateQuery } from 'mongoose';
+import { ClientSession, Types, UpdateQuery } from 'mongoose';
 import {
   IAccountTransactionFindAllParams,
   IAccountTransactionList,
@@ -45,7 +45,7 @@ const create = (
     voucher_no,
     type,
   }: IAccountTransactionList,
-  session: ClientSession | null,
+  session?: ClientSession | null,
 ) => {
   const data = new AccountTransaction({
     account_id,
@@ -57,7 +57,7 @@ const create = (
     voucher_no,
     type,
   });
-  return data.save({ session });
+  return data.save({ ...(session && { session }) });
 };
 
 const findOne = ({ key }: { key?: Partial<IAccountTransactionList> }) => {
@@ -69,7 +69,7 @@ const findOne = ({ key }: { key?: Partial<IAccountTransactionList> }) => {
 };
 
 const update = (
-  _id: string,
+  _id: string | Types.ObjectId,
   data: UpdateQuery<IAccountTransactionList>,
   session?: ClientSession | null,
 ) => {

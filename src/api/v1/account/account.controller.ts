@@ -6,6 +6,8 @@ import { detectChanges } from '../../../utils/detectChanges';
 import auditLogService from '../auditLog/auditLog.service';
 import { IAccountList } from './account.dto';
 import accountService from './account.service';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
+import { withTransaction } from '../../../utils/withTransaction';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -79,7 +81,15 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       entity_id: data?._id?.toString() as string,
       description: `A new account has been created account_id: ${data?._id?.toString()}`,
     });
-
+    await accountTransactionService.create({
+      account_id: data._id,
+      reference_type: 'Account',
+      reference_id: data._id,
+      voucher_no: `OP-${Math.floor(Math.random() * 9000 + 1000)}`,
+      type: 'CREDIT',
+      amount: opening_balance,
+      description: 'Opening Balance',
+    });
     res.json({
       success: true,
       message: 'Account created successfully',
@@ -109,30 +119,15 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     const findSingle = await accountService.findOne({
       key: { _id: _id as string },
     });
-    if (!findSingle) {
-      return customError('Account not found', 404);
-    }
-    let available_balance = opening_balance;
-    if (
-      Number(opening_balance || 0) > Number(findSingle.opening_balance || 0)
-    ) {
-      let new_available_balance =
-        Number(opening_balance) - Number(findSingle.opening_balance);
+    if (!findSingle) return customError('Account not found', 404);
 
-      available_balance = (
-        Number(findSingle.opening_balance) + new_available_balance
-      ).toFixed(2);
-    }
-    if (
-      Number(opening_balance || 0) < Number(findSingle.opening_balance || 0)
-    ) {
-      let new_available_balance =
-        Number(findSingle.opening_balance) - Number(opening_balance);
+    // 🔹 Optimized available_balance calculation
+    const balanceDiff =
+      Number(opening_balance || 0) - Number(findSingle.opening_balance || 0);
 
-      available_balance = (
-        Number(findSingle.opening_balance) - new_available_balance
-      ).toFixed(2);
-    }
+    const available_balance = (
+      Number(findSingle.available_balance || 0) + balanceDiff
+    ).toFixed(2);
 
     const data = await accountService.update(_id as string, {
       acc_number,
@@ -145,7 +140,15 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       charge_percent,
       status,
     });
-
+    const mainTx = await accountTransactionService.findOne({
+      key: { reference_id: findSingle._id, type: 'CREDIT' },
+    });
+    if (!mainTx?._id) customError('Account transaction not found', 404);
+    await accountTransactionService.update(`${mainTx?._id}`, {
+      type: 'CREDIT',
+      amount: opening_balance,
+      description: 'Opening Balance',
+    });
     const compareChange = detectChanges(
       findSingle.toObject(),
       data?.toObject(),
@@ -164,36 +167,47 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     res.json({
       success: true,
       message: 'Account updated successfully',
-      data: data,
+      data,
     });
   } catch (err) {
     next(err);
   }
 };
-
 const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
   try {
     checkMongooseId(_id as string);
+    await withTransaction(async (session) => {
+      const findSingle = await accountService
+        .findOne({
+          key: { _id: _id as string },
+        })
+        .session(session);
+      if (!findSingle) {
+        return customError('Account not found', 404);
+      }
+      const mainTx = await accountTransactionService
+        .findOne({
+          key: { reference_id: findSingle._id, type: 'CREDIT' },
+        })
+        .session(session);
 
-    const findSingle = await accountService.findOne({
-      key: { _id: _id as string },
-    });
-    if (!findSingle) {
-      return customError('Account not found', 404);
-    }
+      await accountTransactionService
+        .deleteItem(`${mainTx?._id}`)
+        .session(session);
 
-    await accountService.deleteItem(_id as string);
+      await accountService.deleteItem(_id as string).session(session);
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'DELETE',
-      entity: 'Account',
-      entity_id: _id as string,
-      changes: findSingle,
-      description: `A new account has been deleted account_id: ${_id}`,
+      await auditLogService.create({
+        req,
+        user: req.user,
+        action: 'DELETE',
+        entity: 'Account',
+        entity_id: _id as string,
+        changes: findSingle,
+        description: `A new account has been deleted account_id: ${_id}`,
+      });
     });
     res.json({
       success: true,
