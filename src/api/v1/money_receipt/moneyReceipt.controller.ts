@@ -188,8 +188,8 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         acc_id,
         {
           available_balance: (
-            Number(account?.available_balance) +
-            (Number(amount) - charge)
+            Number(account?.available_balance || 0) +
+            (Number(amount || 0) - charge)
           ).toFixed(2),
         },
         session,
@@ -361,8 +361,6 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           findSingle.payment_method === 'MOBILE_BANKING' &&
           payment_method !== 'MOBILE_BANKING'
         ) {
-          console.log('I am mobile banking', chargeTx);
-
           await accountTransactionService
             .deleteItem(`${chargeTx?._id}`)
             .session(session);
