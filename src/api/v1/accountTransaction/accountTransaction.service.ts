@@ -38,7 +38,6 @@ const create = (
   {
     account_id,
     amount,
-    charge,
     date,
     description,
     reference_type,
@@ -51,7 +50,6 @@ const create = (
   const data = new AccountTransaction({
     account_id,
     amount,
-    charge,
     date,
     description,
     reference_type,

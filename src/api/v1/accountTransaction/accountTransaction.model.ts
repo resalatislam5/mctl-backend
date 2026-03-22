@@ -18,7 +18,6 @@ const AccountTransactionSchema = new Schema<ICreateAccountTransaction>(
 
     type: { type: String, enum: ['CREDIT', 'DEBIT'], required: true },
     amount: { type: String, required: true },
-    charge: { type: String, default: '0' },
     description: { type: String, trim: true },
     date: { type: Date, default: Date.now },
   },

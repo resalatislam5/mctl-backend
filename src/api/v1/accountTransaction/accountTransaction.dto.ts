@@ -4,11 +4,9 @@ export interface ICreateAccountTransaction extends Document {
   account_id: Types.ObjectId;
   reference_type?: 'MoneyReceipt' | 'Agent' | 'ExpenseHistory';
   reference_id?: Types.ObjectId;
-
   type: 'CREDIT' | 'DEBIT';
   amount: String;
   voucher_no: String;
-  charge: String;
   description: String;
   date: String;
 }
@@ -20,7 +18,6 @@ export interface IAccountTransactionList {
   type: 'CREDIT' | 'DEBIT';
   amount: String;
   voucher_no: String;
-  charge?: String;
   description: String;
   date?: String;
 }
