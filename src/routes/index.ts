@@ -49,13 +49,5 @@ router.use('/v1/balance-transfer', balanceTransferRoutes);
 router.use('/v1/money-receipt', moneyReceiptRoutes);
 router.use('/v1/report/audit-log', auditLogRoutes);
 router.use('/v1/report', ReportRoutes);
-router.use('/v1/test', async (req, res) => {
-  await sendMail(
-    'resalatislam5@gmail.com',
-    'Test Email',
-    '<p>This is a test email.--> nodemailer</p>',
-  );
-  res.send('API is working');
-});
 
 export default router;

@@ -126,7 +126,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       description: `A new user has been created user_id: ${data?._id}`,
     });
 
-    sendMail(
+    await sendMail(
       email,
       'Welcome to MCTL',
       `
@@ -235,7 +235,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     });
 
     if (password) {
-      sendMail(
+      await sendMail(
         email,
         'Your MCTL Password Has Been Changed',
         `
