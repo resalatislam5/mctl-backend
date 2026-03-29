@@ -7,4 +7,6 @@ export const ENV = {
   CLOUD_API_SECRET: process.env.CLOUD_API_SECRET,
   REDIS_URL: process.env.REDIS_URL,
   REDIS_TOKEN: process.env.REDIS_TOKEN,
+  SEND_MAIL_NAME: process.env.SEND_MAIL_NAME,
+  SEND_MAIL_PASSWORD: process.env.SEND_MAIL_PASSWORD,
 };
