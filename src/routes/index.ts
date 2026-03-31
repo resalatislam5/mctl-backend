@@ -1,7 +1,9 @@
 import { Router } from 'express';
 
 import accountRoutes from './accountRoutes';
+import agentCommissionRoutes from './agentCommissionRoutes';
 import agentRoutes from './agentRoutes';
+import agentPaymentRoutes from './agnetPaymentRoutes';
 import auditLogRoutes from './auditLogRoutes';
 import authRoutes from './authRoutes';
 import balanceTransferRoutes from './balanceTransferRoutes';
@@ -16,14 +18,12 @@ import headRoutes from './headRoutes';
 import moduleRoutes from './moduleRoutes';
 import moneyReceiptRoutes from './moneyReceipt';
 import packageRoutes from './packageRoutes';
+import profileRoutes from './profileRoutes';
+import ReportRoutes from './reportRoutes';
 import roleRoutes from './roleRoutes';
 import studentRoutes from './studentRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
-import ReportRoutes from './reportRoutes';
-import agentCommissionRoutes from './agentCommissionRoutes';
-import agentPaymentRoutes from './agnetPaymentRoutes';
-import { sendMail } from '../utils/sendMail';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -49,5 +49,6 @@ router.use('/v1/balance-transfer', balanceTransferRoutes);
 router.use('/v1/money-receipt', moneyReceiptRoutes);
 router.use('/v1/report/audit-log', auditLogRoutes);
 router.use('/v1/report', ReportRoutes);
+router.use('/v1/Profile', profileRoutes);
 
 export default router;
