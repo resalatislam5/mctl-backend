@@ -8,6 +8,9 @@ export interface ICreateAccount extends Document {
   branch_name: string;
   opening_balance: string;
   available_balance: string;
+  balance_transfer: 'YES' | 'NO';
+  transfer_acc_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
+  transfer_acc_id: Types.ObjectId;
   charge_percent: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
@@ -20,6 +23,9 @@ export interface IAccountList {
   branch_name: string;
   opening_balance: string;
   available_balance: string;
+  balance_transfer: 'YES' | 'NO';
+  transfer_acc_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
+  transfer_acc_id: Types.ObjectId;
   charge_percent: string;
   status: 'ACTIVE' | 'INACTIVE';
 }

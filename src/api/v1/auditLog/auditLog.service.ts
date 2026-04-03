@@ -1,5 +1,7 @@
 import { Request } from 'express';
+import { ClientSession } from 'mongoose';
 import AuditLog from './auditLog.modal';
+import { formatDateRange } from '../../../utils/DataFormat';
 
 export interface AuditParams {
   req: Request;
@@ -24,19 +26,7 @@ const findAll = ({
 
   // Date filter
   if (from_date || to_date) {
-    const dateFilter: any = {};
-
-    if (from_date) {
-      dateFilter.$gte = new Date(from_date);
-    }
-
-    if (to_date) {
-      const toDate = new Date(to_date);
-      toDate.setHours(23, 59, 59, 999); // include entire day
-      dateFilter.$lte = toDate;
-    }
-
-    query.createdAt = dateFilter;
+    query.createdAt = formatDateRange(from_date, to_date);
   }
   if (user_id) {
     query.user_id = user_id;
@@ -45,17 +35,12 @@ const findAll = ({
   return AuditLog.find(query);
 };
 
-const create = async ({
-  req,
-  user,
-  action,
-  entity,
-  entity_id,
-  changes,
-  description,
-}: AuditParams): Promise<void> => {
+const create = async (
+  { req, user, action, entity, entity_id, changes, description }: AuditParams,
+  session?: ClientSession | null,
+) => {
   try {
-    await AuditLog.create({
+    const data = new AuditLog({
       user_id: user?._id,
       user_name: user?.name,
       action,
@@ -66,6 +51,7 @@ const create = async ({
       ip_address: req.ip || '',
       user_agent: req.headers['user-agent'] || '',
     });
+    return data.save({ ...(session && { session }) });
   } catch (error) {
     console.error('Audit Log Error:', error);
   }
@@ -83,19 +69,7 @@ const count = ({
   const query: any = {};
 
   if (from_date || to_date) {
-    const dateFilter: any = {};
-
-    if (from_date) {
-      dateFilter.$gte = new Date(from_date);
-    }
-
-    if (to_date) {
-      const toDate = new Date(to_date);
-      toDate.setHours(23, 59, 59, 999); // include entire day
-      dateFilter.$lte = toDate;
-    }
-
-    query.createdAt = dateFilter;
+    query.createdAt = formatDateRange(from_date, to_date);
   }
 
   if (user_id) {

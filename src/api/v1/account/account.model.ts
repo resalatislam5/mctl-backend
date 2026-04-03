@@ -36,10 +36,24 @@ const AccountSchema = new Schema<ICreateAccount>(
       trim: true,
       default: '0',
     },
+    balance_transfer: {
+      type: String,
+      enum: ['YES', 'NO'],
+      trim: true,
+      default: 'NO',
+    },
+    transfer_acc_type: {
+      type: String,
+      enum: ['CASH', 'BANK', 'MOBILE_BANKING'],
+      trim: true,
+    },
+    transfer_acc_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Account',
+    },
     charge_percent: {
       type: String,
       trim: true,
-      default: '0',
     },
 
     status: {

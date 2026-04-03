@@ -1,35 +1,34 @@
-import { ClientSession, Types, UpdateQuery } from 'mongoose';
+import {
+  ClientSession,
+  DeleteResult,
+  Query,
+  Types,
+  UpdateQuery,
+} from 'mongoose';
 import {
   IAccountTransactionFindAllParams,
   IAccountTransactionList,
 } from './accountTransaction.dto';
 import AccountTransaction from './accountTransaction.model';
+import { formatDateRange } from '../../../utils/DataFormat';
 
 const findAll = ({
   account_id,
   from_date,
   to_date,
+  reference_id,
 }: IAccountTransactionFindAllParams) => {
   const query: any = {};
 
   if (account_id) {
     query.account_id = account_id;
   }
+  if (reference_id) {
+    query.reference_id = reference_id;
+  }
 
   if (from_date || to_date) {
-    const dateFilter: any = {};
-
-    if (from_date) {
-      dateFilter.$gte = new Date(from_date);
-    }
-
-    if (to_date) {
-      const toDate = new Date(to_date);
-      toDate.setHours(23, 59, 59, 999); // include entire day
-      dateFilter.$lte = toDate;
-    }
-
-    query.createdAt = dateFilter;
+    query.createdAt = formatDateRange(from_date, to_date);
   }
   return AccountTransaction.find(query);
 };
@@ -95,4 +94,16 @@ const deleteItem = (_id: string) => {
   return AccountTransaction.findByIdAndDelete(_id);
 };
 
-export default { findAll, create, findOne, update, count, deleteItem };
+const deleteMany = (filter: Record<string, any>): Query<DeleteResult, any> => {
+  return AccountTransaction.deleteMany(filter);
+};
+
+export default {
+  findAll,
+  create,
+  findOne,
+  update,
+  count,
+  deleteItem,
+  deleteMany,
+};

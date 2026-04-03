@@ -34,17 +34,23 @@ const findOne = ({ key }: { key?: Partial<IAccountList> }) => {
   return Account.findOne(key);
 };
 
-const create = ({
-  name,
-  acc_number,
-  account_type,
-  bank_name,
-  branch_name,
-  opening_balance,
-  available_balance,
-  charge_percent,
-  status,
-}: IAccountList) => {
+const create = (
+  {
+    name,
+    acc_number,
+    account_type,
+    bank_name,
+    branch_name,
+    opening_balance,
+    available_balance,
+    balance_transfer,
+    transfer_acc_type,
+    transfer_acc_id,
+    charge_percent,
+    status,
+  }: IAccountList,
+  session?: ClientSession | null,
+) => {
   const account = new Account({
     name,
     acc_number,
@@ -53,10 +59,13 @@ const create = ({
     branch_name,
     opening_balance,
     available_balance,
+    balance_transfer,
+    transfer_acc_type,
+    transfer_acc_id,
     charge_percent,
     status,
   });
-  return account.save();
+  return account.save({ ...(session && { session }) });
 };
 
 const update = (

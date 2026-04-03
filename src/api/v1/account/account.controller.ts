@@ -58,38 +58,57 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     branch_name,
     opening_balance,
     charge_percent,
+    balance_transfer,
+    transfer_acc_type,
+    transfer_acc_id,
     status,
   } = req.body as IAccountList;
   try {
-    const data = await accountService.create({
-      name,
-      acc_number,
-      account_type,
-      bank_name,
-      branch_name,
-      opening_balance,
-      available_balance: opening_balance,
-      charge_percent,
-      status,
+    const data = await withTransaction(async (session) => {
+      const data = await accountService.create(
+        {
+          name,
+          acc_number,
+          account_type,
+          bank_name,
+          branch_name,
+          opening_balance,
+          available_balance: opening_balance,
+          charge_percent,
+          balance_transfer,
+          transfer_acc_type,
+          transfer_acc_id,
+          status,
+        },
+        session,
+      );
+
+      await auditLogService.create(
+        {
+          req,
+          user: req.user,
+          action: 'CREATE',
+          entity: 'Account',
+          entity_id: data?._id?.toString() as string,
+          description: `A new account has been created account_id: ${data?._id?.toString()}`,
+        },
+        session,
+      );
+      await accountTransactionService.create(
+        {
+          account_id: data._id,
+          reference_type: 'Account',
+          reference_id: data._id,
+          voucher_no: `OP-${Math.floor(Math.random() * 9000 + 1000)}`,
+          type: 'CREDIT',
+          amount: opening_balance || '0',
+          description: 'Opening Balance',
+        },
+        session,
+      );
+      return data;
     });
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'CREATE',
-      entity: 'Account',
-      entity_id: data?._id?.toString() as string,
-      description: `A new account has been created account_id: ${data?._id?.toString()}`,
-    });
-    await accountTransactionService.create({
-      account_id: data._id,
-      reference_type: 'Account',
-      reference_id: data._id,
-      voucher_no: `OP-${Math.floor(Math.random() * 9000 + 1000)}`,
-      type: 'CREDIT',
-      amount: opening_balance,
-      description: 'Opening Balance',
-    });
     res.json({
       success: true,
       message: 'Account created successfully',
@@ -111,6 +130,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     name,
     charge_percent,
     status,
+    balance_transfer,
+    transfer_acc_type,
+    transfer_acc_id,
   } = req.body as IAccountList;
 
   try {
@@ -120,48 +142,91 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       key: { _id: _id as string },
     });
     if (!findSingle) return customError('Account not found', 404);
+    const data = await withTransaction(async (session) => {
+      // 🔹 Optimized available_balance calculation
+      const balanceDiff =
+        Number(opening_balance || 0) - Number(findSingle.opening_balance || 0);
 
-    // 🔹 Optimized available_balance calculation
-    const balanceDiff =
-      Number(opening_balance || 0) - Number(findSingle.opening_balance || 0);
+      const available_balance = (
+        Number(findSingle.available_balance || 0) + balanceDiff
+      ).toFixed(2);
 
-    const available_balance = (
-      Number(findSingle.available_balance || 0) + balanceDiff
-    ).toFixed(2);
+      const updateData = {
+        acc_number,
+        account_type,
+        bank_name,
+        branch_name,
+        opening_balance,
+        available_balance,
+        name,
+        charge_percent,
+        status,
+        balance_transfer,
+        transfer_acc_type,
+        transfer_acc_id,
+      };
 
-    const data = await accountService.update(_id as string, {
-      acc_number,
-      account_type,
-      bank_name,
-      branch_name,
-      opening_balance,
-      available_balance,
-      name,
-      charge_percent,
-      status,
-    });
-    const mainTx = await accountTransactionService.findOne({
-      key: { reference_id: findSingle._id, type: 'CREDIT' },
-    });
-    if (!mainTx?._id) customError('Account transaction not found', 404);
-    await accountTransactionService.update(`${mainTx?._id}`, {
-      type: 'CREDIT',
-      amount: opening_balance,
-      description: 'Opening Balance',
-    });
-    const compareChange = detectChanges(
-      findSingle.toObject(),
-      data?.toObject(),
-    );
+      let data;
+      if (balance_transfer === 'NO') {
+        data = await accountService.update(
+          _id as string,
+          {
+            ...updateData,
+            $unset: {
+              transfer_acc_id: '',
+              transfer_acc_type: '',
+              charge_percent: '',
+            },
+          },
+          session,
+        );
+      } else {
+        data = await accountService.update(
+          _id as string,
+          {
+            ...updateData,
+            available_balance: '0',
+            opening_balance: '0',
+          },
+          session,
+        );
+      }
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'UPDATE',
-      entity: 'Account',
-      entity_id: _id as string,
-      changes: compareChange,
-      description: `A new account has been updated account_id: ${_id}`,
+      const mainTx = await accountTransactionService
+        .findOne({
+          key: { reference_id: findSingle._id, type: 'CREDIT' },
+        })
+        .session(session);
+      if (!mainTx?._id) customError('Account transaction not found', 404);
+
+      await accountTransactionService.update(
+        `${mainTx?._id}`,
+        {
+          type: 'CREDIT',
+          amount: opening_balance,
+          description: 'Opening Balance',
+        },
+        session,
+      );
+      const compareChange = detectChanges(
+        findSingle.toObject(),
+        data?.toObject(),
+      );
+
+      await auditLogService.create(
+        {
+          req,
+          user: req.user,
+          action: 'UPDATE',
+          entity: 'Account',
+          entity_id: _id as string,
+          changes: compareChange,
+          description: `A new account has been updated account_id: ${_id}`,
+        },
+        session,
+      );
+
+      return data;
     });
 
     res.json({

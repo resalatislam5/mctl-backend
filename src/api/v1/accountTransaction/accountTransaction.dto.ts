@@ -34,6 +34,7 @@ export interface IAccountTransactionList {
 
 export interface IAccountTransactionFindAllParams {
   account_id?: Types.ObjectId | string;
+  reference_id?: Types.ObjectId | string;
   from_date?: string;
   to_date?: string;
 }

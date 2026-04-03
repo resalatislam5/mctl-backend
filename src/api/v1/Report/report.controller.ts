@@ -3,6 +3,7 @@ import enrollmentService from '../enrollment/enrollment.service';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
 import expenseHistoryService from '../expenseHistory/expenseHistory.service';
 import { customError } from '../../../utils/customError';
+import { formatDateRange } from '../../../utils/DataFormat';
 
 const studentLedger = async (
   req: Request,
@@ -87,19 +88,7 @@ const expenseReport = async (
   const head_id = req.query.head_id as string;
 
   if (from_date || to_date) {
-    const dateFilter: any = {};
-
-    if (from_date) {
-      dateFilter.$gte = new Date(from_date);
-    }
-
-    if (to_date) {
-      const toDate = new Date(to_date);
-      toDate.setHours(23, 59, 59, 999); // include entire day
-      dateFilter.$lte = toDate;
-    }
-
-    query.createdAt = dateFilter;
+    query.createdAt = formatDateRange(from_date, to_date);
   }
 
   if (head_id) {

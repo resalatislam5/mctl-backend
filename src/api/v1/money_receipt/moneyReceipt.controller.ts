@@ -179,21 +179,40 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       if (!account) customError('Account Not Found', 404);
 
       let charge = 0;
-      if (payment_method === 'MOBILE_BANKING') {
+      let isBalanceTransfer = account?.balance_transfer === 'YES';
+      if (isBalanceTransfer) {
         charge =
           (Number(amount || 0) * Number(account?.charge_percent || 0)) / 100;
-      }
+        const transferAccount = await accountService
+          .findOne({
+            key: { _id: account!.transfer_acc_id },
+          })
+          .session(session || null);
 
-      await accountService.update(
-        acc_id,
-        {
-          available_balance: (
-            Number(account?.available_balance || 0) +
-            (Number(amount || 0) - charge)
-          ).toFixed(2),
-        },
-        session,
-      );
+        if (!transferAccount) customError('Transfer Account Not Found', 404);
+
+        await accountService.update(
+          account!.transfer_acc_id,
+          {
+            available_balance: (
+              Number(transferAccount?.available_balance || 0) +
+              (Number(amount || 0) - charge)
+            ).toFixed(2),
+          },
+          session,
+        );
+      } else {
+        await accountService.update(
+          acc_id,
+          {
+            available_balance: (
+              Number(account?.available_balance || 0) +
+              (Number(amount || 0) - charge)
+            ).toFixed(2),
+          },
+          session,
+        );
+      }
 
       const enrollment = await enrollmentService
         .findOne({
@@ -239,12 +258,12 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           voucher_no: data?.voucher_no,
           amount: (Number(amount) - charge).toFixed(2),
           type: 'CREDIT',
-          description: `Payment from student (${student_id}) via ${payment_method}`,
+          description: `Payment received from student (${student_id}) via ${payment_method}`,
         },
         session,
       );
 
-      if (charge) {
+      if (charge > 0) {
         await accountTransactionService.create(
           {
             account_id: acc_id,
@@ -253,7 +272,34 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
             voucher_no: data?.voucher_no,
             amount: charge.toFixed(2),
             type: 'DEBIT',
-            description: `Payment from student (${student_id}) via ${payment_method}`,
+            description: `Transaction charge for student (${student_id}) payment via ${payment_method}`,
+          },
+          session,
+        );
+      }
+
+      if (isBalanceTransfer) {
+        await accountTransactionService.create(
+          {
+            account_id: acc_id,
+            reference_type: 'MoneyReceipt',
+            reference_id: data?._id,
+            voucher_no: data?.voucher_no,
+            amount: (Number(amount) - charge).toFixed(2),
+            type: 'DEBIT',
+            description: `Auto transfer to account (${account!.transfer_acc_id}) [Student: ${student_id}]`,
+          },
+          session,
+        );
+        await accountTransactionService.create(
+          {
+            account_id: account!.transfer_acc_id,
+            reference_type: 'MoneyReceipt',
+            reference_id: data?._id,
+            voucher_no: data?.voucher_no,
+            amount: (Number(amount) - charge).toFixed(2),
+            type: 'CREDIT',
+            description: `Auto transfer from account (${acc_id}) [Student: ${student_id}]`,
           },
           session,
         );
@@ -307,182 +353,173 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     const data = await withTransaction(async (session) => {
       const oldAccId = findSingle.acc_id.toString();
       const newAccId = acc_id;
-
       const oldAmount = Number(findSingle.amount || 0);
       const newAmount = Number(amount || 0);
+      const oldCharge = Number(findSingle.charge || 0);
 
-      const mainTx = await accountTransactionService
-        .findOne({
-          key: { reference_id: findSingle._id, type: 'CREDIT' },
-        })
-        .session(session);
+      // ── 1. REVERSE old account balances ──────────────────────────────────
 
-      const chargeTx = await accountTransactionService
-        .findOne({
-          key: { reference_id: findSingle._id, type: 'DEBIT' },
-        })
-        .session(session);
+      const oldAccount = await accountService
+        .findOne({ key: { _id: oldAccId } })
+        .session(session || null);
+      if (!oldAccount) customError('Old Account Not Found', 404);
 
-      if (!mainTx) {
-        customError('Transaction not found', 404);
-      }
-      if (oldAccId !== newAccId) {
-        const oldAccount = await accountService
-          .findOne({ key: { _id: oldAccId } })
+      const wasBalanceTransfer = oldAccount?.balance_transfer === 'YES';
+
+      if (wasBalanceTransfer) {
+        // Reverse the transfer account credit
+        const oldTransferAccount = await accountService
+          .findOne({ key: { _id: oldAccount!.transfer_acc_id } })
           .session(session || null);
+        if (!oldTransferAccount)
+          customError('Old Transfer Account Not Found', 404);
 
-        if (!oldAccount) customError('Old Account Not Found', 404);
-
+        await accountService.update(
+          oldAccount!.transfer_acc_id,
+          {
+            available_balance: (
+              Number(oldTransferAccount?.available_balance || 0) -
+              (oldAmount - oldCharge)
+            ).toFixed(2),
+          },
+          session,
+        );
+      } else {
+        // Reverse the direct account credit
         await accountService.update(
           oldAccId,
           {
             available_balance: (
               Number(oldAccount?.available_balance || 0) -
-              (oldAmount - Number(chargeTx?.amount || 0))
+              (oldAmount - oldCharge)
             ).toFixed(2),
           },
           session,
         );
+      }
 
-        const newAccount = await accountService
-          .findOne({ key: { _id: newAccId } })
+      // ── 2. APPLY new account balances (mirrors create logic) ─────────────
+
+      const newAccount = await accountService
+        .findOne({ key: { _id: newAccId } })
+        .session(session || null);
+      if (!newAccount) customError('New Account Not Found', 404);
+
+      let newCharge = 0;
+      const isBalanceTransfer = newAccount?.balance_transfer === 'YES';
+
+      if (isBalanceTransfer) {
+        newCharge = (newAmount * Number(newAccount?.charge_percent || 0)) / 100;
+
+        const newTransferAccount = await accountService
+          .findOne({ key: { _id: newAccount!.transfer_acc_id } })
           .session(session || null);
+        if (!newTransferAccount) customError('Transfer Account Not Found', 404);
 
-        if (!newAccount) customError('New Account Not Found', 404);
-
-        let charge = 0;
-        if (payment_method === 'MOBILE_BANKING') {
-          charge =
-            (Number(amount || 0) * Number(newAccount?.charge_percent || 0)) /
-            100;
-        }
-
-        if (
-          findSingle.payment_method === 'MOBILE_BANKING' &&
-          payment_method !== 'MOBILE_BANKING'
-        ) {
-          await accountTransactionService
-            .deleteItem(`${chargeTx?._id}`)
-            .session(session);
-        }
-
+        await accountService.update(
+          newAccount!.transfer_acc_id,
+          {
+            available_balance: (
+              Number(newTransferAccount?.available_balance || 0) +
+              (newAmount - newCharge)
+            ).toFixed(2),
+          },
+          session,
+        );
+      } else {
         await accountService.update(
           newAccId,
           {
             available_balance: (
               Number(newAccount?.available_balance || 0) +
-              (newAmount - charge)
+              (newAmount - newCharge)
             ).toFixed(2),
           },
           session,
         );
+      }
 
-        await accountTransactionService.update(
-          `${mainTx?._id}`,
-          {
-            account_id: newAccId,
-            amount: (newAmount - charge).toFixed(2),
-            description: `Payment from student (${student_id}) via ${payment_method}`,
-          },
-          session,
-        );
-        if (charge) {
-          if (chargeTx) {
-            console.log(charge, 'charge-update');
-            await accountTransactionService.update(
-              `${chargeTx?._id}`,
-              {
-                account_id: newAccId,
-                amount: charge.toFixed(2),
-                description: `Payment from student (${student_id}) via ${payment_method}`,
-              },
-              session,
-            );
-          } else {
-            console.log(charge, 'charge-create');
+      // ── 3. DELETE all old transactions for this receipt ───────────────────
 
-            await accountTransactionService.create(
-              {
-                account_id: acc_id,
-                reference_type: 'MoneyReceipt',
-                reference_id: findSingle?._id,
-                voucher_no: findSingle?.voucher_no,
-                amount: charge.toFixed(2),
-                type: 'DEBIT',
-                description: `Payment from student (${student_id}) via ${payment_method}`,
-              },
-              session,
-            );
-          }
-        }
-      } else {
-        const diff = newAmount - oldAmount;
+      await accountTransactionService
+        .deleteMany({ reference_id: findSingle._id })
+        .session(session);
 
-        const account = await accountService
-          .findOne({ key: { _id: newAccId } })
-          .session(session || null);
+      // ── 4. RECREATE transactions (mirrors create logic exactly) ───────────
 
-        if (!account) customError('Account Not Found', 404);
+      await accountTransactionService.create(
+        {
+          account_id: newAccId,
+          reference_type: 'MoneyReceipt',
+          reference_id: findSingle._id,
+          voucher_no: findSingle.voucher_no,
+          amount: (newAmount - newCharge).toFixed(2),
+          type: 'CREDIT',
+          description: `Payment received from student (${student_id}) via ${payment_method}`,
+        },
+        session,
+      );
 
-        let charge = 0;
-        if (payment_method === 'MOBILE_BANKING') {
-          charge =
-            (Number(diff || 0) * Number(account?.charge_percent || 0)) / 100;
-        }
-        await accountService.update(
-          newAccId,
-          {
-            available_balance: (
-              Number(account?.available_balance || 0) +
-              diff -
-              charge
-            ).toFixed(2),
-          },
-          session,
-        );
-        await accountTransactionService.update(
-          `${mainTx?._id}`,
+      if (newCharge > 0) {
+        await accountTransactionService.create(
           {
             account_id: newAccId,
             reference_type: 'MoneyReceipt',
-            reference_id: findSingle?._id,
-            amount: (Number(mainTx?.amount || 0) + diff - charge).toFixed(2),
-            type: 'CREDIT',
-            description: `Payment from student (${student_id}) via ${payment_method}`,
+            reference_id: findSingle._id,
+            voucher_no: findSingle.voucher_no,
+            amount: newCharge.toFixed(2),
+            type: 'DEBIT',
+            description: `Transaction charge for student (${student_id}) payment via ${payment_method}`,
           },
           session,
         );
-        if (charge) {
-          await accountTransactionService.update(
-            `${chargeTx?._id}`,
-            {
-              account_id: newAccId,
-              money_receipt_id: findSingle?._id.toString(),
-              amount: (Number(chargeTx?.amount || 0) + charge).toFixed(2),
-              description: `Payment from student (${student_id}) via ${payment_method}`,
-            },
-            session,
-          );
-        }
       }
 
-      const enrollment = await enrollmentService
-        .findOne({
-          key: { _id: enrollment_id },
-        })
-        .session(session || null);
+      if (isBalanceTransfer) {
+        await accountTransactionService.create(
+          {
+            account_id: newAccId,
+            reference_type: 'MoneyReceipt',
+            reference_id: findSingle._id,
+            voucher_no: findSingle.voucher_no,
+            amount: (newAmount - newCharge).toFixed(2),
+            type: 'DEBIT',
+            description: `Auto transfer to account (${newAccount!.transfer_acc_id}) [Student: ${student_id}]`,
+          },
+          session,
+        );
+        await accountTransactionService.create(
+          {
+            account_id: newAccount!.transfer_acc_id,
+            reference_type: 'MoneyReceipt',
+            reference_id: findSingle._id,
+            voucher_no: findSingle.voucher_no,
+            amount: (newAmount - newCharge).toFixed(2),
+            type: 'CREDIT',
+            description: `Auto transfer from account (${newAccId}) [Student: ${student_id}]`,
+          },
+          session,
+        );
+      }
 
+      // ── 5. UPDATE enrollment total_paid ───────────────────────────────────
+
+      const enrollment = await enrollmentService
+        .findOne({ key: { _id: enrollment_id } })
+        .session(session || null);
       if (!enrollment) customError('Enrollment Not Found', 404);
 
-      const diff = newAmount - oldAmount;
+      const amountDiff = newAmount - oldAmount;
 
       await enrollmentService.update(
         `${enrollment?._id}`,
         {
-          total_paid: (Number(enrollment?.total_paid) + diff).toFixed(2),
+          total_paid: (Number(enrollment?.total_paid) + amountDiff).toFixed(2),
         },
         session,
       );
+
+      // ── 6. UPDATE money receipt record ────────────────────────────────────
 
       const data = await moneyReceiptService.update(
         _id as string,
@@ -490,14 +527,19 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           acc_id,
           amount,
           enrollment_id,
-          paid_amount,
+          // paid_amount,
           payment_method,
-          voucher_no,
+          voucher_no: findSingle.voucher_no,
           student_id,
           date,
+          charge: newCharge.toFixed(2),
+          paid_amount: (
+            Number(enrollment?.total_paid || 0) + newAmount
+          ).toFixed(2),
         },
         session,
       );
+
       return data;
     });
 
@@ -513,13 +555,13 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       entity: 'Money Receipt',
       entity_id: _id as string,
       changes: compareChange,
-      description: `A new money receipt has been updated money_receipt_id: ${_id}`,
+      description: `A money receipt has been updated money_receipt_id: ${_id}`,
     });
 
     res.json({
       success: true,
       message: 'Money receipt updated successfully',
-      data: data,
+      data,
     });
   } catch (err) {
     next(err);
@@ -541,67 +583,71 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
     await withTransaction(async (session) => {
       const oldAccId = findSingle.acc_id.toString();
+      const oldAmount = Number(findSingle.amount || 0);
+      const oldCharge = Number(findSingle.charge || 0);
 
-      const mainTx = await accountTransactionService
-        .findOne({
-          key: { reference_id: findSingle._id, type: 'CREDIT' },
-        })
-        .session(session);
-
-      const chargeTx = await accountTransactionService
-        .findOne({
-          key: { reference_id: findSingle._id, type: 'DEBIT' },
-        })
-        .session(session);
+      // ── 1. REVERSE account balances ───────────────────────────────────────
 
       const oldAccount = await accountService
         .findOne({ key: { _id: oldAccId } })
         .session(session || null);
-
       if (!oldAccount) customError('Old Account Not Found', 404);
 
-      if (!mainTx) {
-        customError('Transaction not found', 404);
+      const wasBalanceTransfer = oldAccount?.balance_transfer === 'YES';
+
+      if (wasBalanceTransfer) {
+        const transferAccount = await accountService
+          .findOne({ key: { _id: oldAccount!.transfer_acc_id } })
+          .session(session || null);
+        if (!transferAccount) customError('Transfer Account Not Found', 404);
+
+        await accountService.update(
+          oldAccount!.transfer_acc_id,
+          {
+            available_balance: (
+              Number(transferAccount?.available_balance || 0) -
+              (oldAmount - oldCharge)
+            ).toFixed(2),
+          },
+          session,
+        );
+      } else {
+        await accountService.update(
+          oldAccId,
+          {
+            available_balance: (
+              Number(oldAccount?.available_balance || 0) -
+              (oldAmount - oldCharge)
+            ).toFixed(2),
+          },
+          session,
+        );
       }
 
-      await accountService.update(
-        oldAccId,
-        {
-          available_balance: (
-            Number(oldAccount?.available_balance || 0) -
-            (Number(findSingle.amount || 0) - Number(chargeTx?.amount || 0))
-          ).toFixed(2),
-        },
-        session,
-      );
+      // ── 2. REVERSE enrollment total_paid ──────────────────────────────────
 
       const enrollment = await enrollmentService
         .findOne({
           key: { _id: findSingle?.enrollment_id.toString() },
         })
         .session(session || null);
-
       if (!enrollment) customError('Enrollment Not Found', 404);
 
       await enrollmentService.update(
         `${enrollment?._id}`,
         {
-          total_paid: (
-            Number(enrollment?.total_paid) - Number(findSingle.amount)
-          ).toFixed(2),
+          total_paid: (Number(enrollment?.total_paid) - oldAmount).toFixed(2),
         },
         session,
       );
 
-      await moneyReceiptService.deleteItem(_id as string).session(session);
+      // ── 3. DELETE all transactions and receipt ────────────────────────────
+
       await accountTransactionService
-        .deleteItem(`${mainTx?._id}`)
+        .deleteMany({ reference_id: findSingle._id })
         .session(session);
-      if (chargeTx) {
-        await accountTransactionService
-          .deleteItem(`${chargeTx?._id}`)
-          .session(session);
-      }
+
+      await moneyReceiptService.deleteItem(_id as string).session(session);
     });
 
     await auditLogService.create({
@@ -611,8 +657,9 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       entity: 'Money Receipt',
       entity_id: _id as string,
       changes: findSingle,
-      description: `A new money receipt has been deleted money_receipt_id: ${_id}`,
+      description: `A money receipt has been deleted money_receipt_id: ${_id}`,
     });
+
     res.json({
       success: true,
       message: 'Money Receipt deleted successfully',
