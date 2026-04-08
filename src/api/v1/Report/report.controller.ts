@@ -163,29 +163,119 @@ const expenseReport = async (
   }
 };
 
+// const upcomingInstallments = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction,
+// ) => {
+//   try {
+//     const from_date = req.query.from_date?.toString() || '';
+//     const to_date = req.query.to_date?.toString() || '';
+//     if (!from_date || !to_date) {
+//       throw customError('Both from_date and to_date are required', 400);
+//     }
+//     const dateRange = formatDateRange(from_date, to_date);
+
+//     const query: any = {
+//       'installment_date.date': dateRange,
+//     };
+//     console.log(query);
+
+//     const data = await enrollmentService.aggregate([
+//       {
+//         $match: query,
+//       },
+//       {
+//         $lookup: {
+//           from: 'students',
+//           localField: 'student_id',
+//           foreignField: '_id',
+//           as: 'student',
+//         },
+//       },
+//       {
+//         $addFields: {
+//           matched_installments: {
+//             $filter: {
+//               input: '$installment_date',
+//               as: 'item',
+//               cond: {
+//                 $and: [
+//                   { $gte: ['$$item.date', dateRange?.$gte] },
+//                   { $lte: ['$$item.date', dateRange?.$lte] },
+//                 ],
+//               },
+//             },
+//           },
+//           student_name: {
+//             $ifNull: [{ $arrayElemAt: ['$student.name', 0] }, null],
+//           },
+//           student_code: {
+//             $ifNull: [{ $arrayElemAt: ['$student.code', 0] }, null],
+//           },
+//         },
+//       },
+//       {
+//         $facet: {
+//           data: [
+//             {
+//               $project: {
+//                 installment_date: 1,
+//                 admission_date: 1,
+//                 matched_installments: 1,
+//                 total_amount: 1,
+//                 total_paid: 1,
+//                 student_name: 1,
+//                 student_code: 1,
+//                 code: 1,
+//               },
+//             },
+//           ],
+//           totalCount: [{ $count: 'count' }],
+//         },
+//       },
+//     ]);
+
+//     res.json({
+//       success: true,
+//       total: data[0]?.totalCount[0]?.count,
+//       data: data[0]?.data,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 const upcomingInstallments = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const date = req.query.date?.toString() || '';
-    if (!date) customError('Date is required', 404);
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
+    const from_date = req.query.from_date?.toString() || '';
+    const to_date = req.query.to_date?.toString() || '';
 
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
+    if (!from_date || !to_date) {
+      throw customError('Both from_date and to_date are required', 400);
+    }
 
-    const data = await enrollmentService.aggregate([
-      {
-        $match: {
-          'installment_date.date': {
-            $gte: start,
-            $lte: end,
-          },
+    const dateRange = formatDateRange(from_date, to_date);
+
+    if (!dateRange) {
+      throw customError('Invalid date range', 400);
+    }
+
+    // FIX: use $elemMatch to correctly search inside the installment_date array
+    const query: any = {
+      installment_date: {
+        $elemMatch: {
+          date: dateRange,
         },
       },
+    };
+
+    const data = await enrollmentService.aggregate([
+      { $match: query },
       {
         $lookup: {
           from: 'students',
@@ -202,8 +292,8 @@ const upcomingInstallments = async (
               as: 'item',
               cond: {
                 $and: [
-                  { $gte: ['$$item.date', start] },
-                  { $lte: ['$$item.date', end] },
+                  { $gte: ['$$item.date', dateRange.$gte] },
+                  { $lte: ['$$item.date', dateRange.$lte] },
                 ],
               },
             },
