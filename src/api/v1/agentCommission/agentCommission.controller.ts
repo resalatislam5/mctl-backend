@@ -164,9 +164,9 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
           batch_id,
           total_students,
           eligible_students,
-          total_amount: total_amount.toFixed(2),
+          total_amount: total_amount,
           commission_rate: agent.commission,
-          commission_amount: commission_amount.toFixed(2),
+          commission_amount: commission_amount,
         });
       } else {
         // 👉 UPDATE

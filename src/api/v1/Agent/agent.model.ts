@@ -33,9 +33,9 @@ const AgentSchema = new Schema<ICreateAgent>(
       trim: true,
     },
     min_payment_percent: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
 
     status: {

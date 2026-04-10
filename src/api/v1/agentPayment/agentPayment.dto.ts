@@ -5,8 +5,8 @@ export interface ICreateAgentPayment extends Document {
   commission_id: Types.ObjectId;
   payment_method: 'CASH' | 'BANK' | 'MOBILE_BANKING';
   acc_id: Types.ObjectId;
-  amount: string;
-  paid_amount: string;
+  amount: number;
+  paid_amount: number;
   voucher_no: string;
   date: string;
   reference_no?: string;
@@ -19,8 +19,8 @@ export interface IAgentPaymentList {
   commission_id: Types.ObjectId;
   payment_method: 'CASH' | 'BANK' | 'MOBILE_BANKING';
   acc_id: Types.ObjectId;
-  amount: string;
-  paid_amount: string;
+  amount: number;
+  paid_amount: number;
   voucher_no: string;
   date: string;
   reference_no: string;

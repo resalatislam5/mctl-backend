@@ -194,10 +194,9 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           account!.transfer_acc_id,
           {
-            available_balance: (
+            available_balance:
               Number(transferAccount?.available_balance || 0) +
-              (Number(amount || 0) - charge)
-            ).toFixed(2),
+              (Number(amount || 0) - charge),
           },
           session,
         );
@@ -205,10 +204,9 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           acc_id,
           {
-            available_balance: (
+            available_balance:
               Number(account?.available_balance || 0) +
-              (Number(amount || 0) - charge)
-            ).toFixed(2),
+              (Number(amount || 0) - charge),
           },
           session,
         );
@@ -225,9 +223,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       await enrollmentService.update(
         `${enrollment?._id}`,
         {
-          total_paid: (Number(enrollment?.total_paid) + Number(amount)).toFixed(
-            2,
-          ),
+          total_paid: Number(enrollment?.total_paid) + Number(amount),
         },
         session,
       );
@@ -242,10 +238,9 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           voucher_no,
           student_id,
           date,
-          charge: charge.toFixed(2),
-          paid_amount: (
-            Number(enrollment?.total_paid || 0) + Number(amount || 0)
-          ).toFixed(2),
+          charge: charge,
+          paid_amount:
+            Number(enrollment?.total_paid || 0) + Number(amount || 0),
         },
         session,
       );
@@ -256,7 +251,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           reference_type: 'MoneyReceipt',
           reference_id: data?._id,
           voucher_no: data?.voucher_no,
-          amount: (Number(amount) - charge).toFixed(2),
+          amount: Number(amount) - charge,
           type: 'CREDIT',
           description: `Payment received from student (${student_id}) via ${payment_method}`,
         },
@@ -270,7 +265,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
             reference_type: 'MoneyReceipt',
             reference_id: data?._id,
             voucher_no: data?.voucher_no,
-            amount: charge.toFixed(2),
+            amount: charge,
             type: 'DEBIT',
             description: `Transaction charge for student (${student_id}) payment via ${payment_method}`,
           },
@@ -285,7 +280,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
             reference_type: 'MoneyReceipt',
             reference_id: data?._id,
             voucher_no: data?.voucher_no,
-            amount: (Number(amount) - charge).toFixed(2),
+            amount: Number(amount) - charge,
             type: 'DEBIT',
             description: `Auto transfer to account (${account!.transfer_acc_id}) [Student: ${student_id}]`,
           },
@@ -297,7 +292,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
             reference_type: 'MoneyReceipt',
             reference_id: data?._id,
             voucher_no: data?.voucher_no,
-            amount: (Number(amount) - charge).toFixed(2),
+            amount: Number(amount) - charge,
             type: 'CREDIT',
             description: `Auto transfer from account (${acc_id}) [Student: ${student_id}]`,
           },
@@ -377,10 +372,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           oldAccount!.transfer_acc_id,
           {
-            available_balance: (
+            available_balance:
               Number(oldTransferAccount?.available_balance || 0) -
-              (oldAmount - oldCharge)
-            ).toFixed(2),
+              (oldAmount - oldCharge),
           },
           session,
         );
@@ -389,10 +383,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           oldAccId,
           {
-            available_balance: (
+            available_balance:
               Number(oldAccount?.available_balance || 0) -
-              (oldAmount - oldCharge)
-            ).toFixed(2),
+              (oldAmount - oldCharge),
           },
           session,
         );
@@ -419,10 +412,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           newAccount!.transfer_acc_id,
           {
-            available_balance: (
+            available_balance:
               Number(newTransferAccount?.available_balance || 0) +
-              (newAmount - newCharge)
-            ).toFixed(2),
+              (newAmount - newCharge),
           },
           session,
         );
@@ -430,10 +422,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           newAccId,
           {
-            available_balance: (
+            available_balance:
               Number(newAccount?.available_balance || 0) +
-              (newAmount - newCharge)
-            ).toFixed(2),
+              (newAmount - newCharge),
           },
           session,
         );
@@ -453,7 +444,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           reference_type: 'MoneyReceipt',
           reference_id: findSingle._id,
           voucher_no: findSingle.voucher_no,
-          amount: (newAmount - newCharge).toFixed(2),
+          amount: newAmount - newCharge,
           type: 'CREDIT',
           description: `Payment received from student (${student_id}) via ${payment_method}`,
         },
@@ -467,7 +458,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             reference_type: 'MoneyReceipt',
             reference_id: findSingle._id,
             voucher_no: findSingle.voucher_no,
-            amount: newCharge.toFixed(2),
+            amount: newCharge,
             type: 'DEBIT',
             description: `Transaction charge for student (${student_id}) payment via ${payment_method}`,
           },
@@ -482,7 +473,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             reference_type: 'MoneyReceipt',
             reference_id: findSingle._id,
             voucher_no: findSingle.voucher_no,
-            amount: (newAmount - newCharge).toFixed(2),
+            amount: newAmount - newCharge,
             type: 'DEBIT',
             description: `Auto transfer to account (${newAccount!.transfer_acc_id}) [Student: ${student_id}]`,
           },
@@ -494,7 +485,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             reference_type: 'MoneyReceipt',
             reference_id: findSingle._id,
             voucher_no: findSingle.voucher_no,
-            amount: (newAmount - newCharge).toFixed(2),
+            amount: newAmount - newCharge,
             type: 'CREDIT',
             description: `Auto transfer from account (${newAccId}) [Student: ${student_id}]`,
           },
@@ -514,7 +505,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       await enrollmentService.update(
         `${enrollment?._id}`,
         {
-          total_paid: (Number(enrollment?.total_paid) + amountDiff).toFixed(2),
+          total_paid: Number(enrollment?.total_paid) + amountDiff,
         },
         session,
       );
@@ -532,10 +523,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           voucher_no: findSingle.voucher_no,
           student_id,
           date,
-          charge: newCharge.toFixed(2),
-          paid_amount: (
-            Number(enrollment?.total_paid || 0) + newAmount
-          ).toFixed(2),
+          charge: newCharge,
+          paid_amount: Number(enrollment?.total_paid || 0) + newAmount,
         },
         session,
       );
@@ -604,10 +593,9 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           oldAccount!.transfer_acc_id,
           {
-            available_balance: (
+            available_balance:
               Number(transferAccount?.available_balance || 0) -
-              (oldAmount - oldCharge)
-            ).toFixed(2),
+              (oldAmount - oldCharge),
           },
           session,
         );
@@ -615,10 +603,9 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
         await accountService.update(
           oldAccId,
           {
-            available_balance: (
+            available_balance:
               Number(oldAccount?.available_balance || 0) -
-              (oldAmount - oldCharge)
-            ).toFixed(2),
+              (oldAmount - oldCharge),
           },
           session,
         );
@@ -628,7 +615,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
       const enrollment = await enrollmentService
         .findOne({
-          key: { _id: findSingle?.enrollment_id.toString() },
+          key: { _id: findSingle?.enrollment_id },
         })
         .session(session || null);
       if (!enrollment) customError('Enrollment Not Found', 404);
@@ -636,7 +623,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       await enrollmentService.update(
         `${enrollment?._id}`,
         {
-          total_paid: (Number(enrollment?.total_paid) - oldAmount).toFixed(2),
+          total_paid: Number(enrollment?.total_paid) - oldAmount,
         },
         session,
       );

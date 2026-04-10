@@ -6,12 +6,12 @@ export interface ICreateAccount extends Document {
   acc_number: string;
   bank_name: string;
   branch_name: string;
-  opening_balance: string;
-  available_balance: string;
+  opening_balance: number;
+  available_balance: number;
   balance_transfer: 'YES' | 'NO';
   transfer_acc_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
   transfer_acc_id: Types.ObjectId;
-  charge_percent: string;
+  charge_percent: number;
   status: 'ACTIVE' | 'INACTIVE';
 }
 export interface IAccountList {
@@ -21,12 +21,12 @@ export interface IAccountList {
   acc_number: string;
   bank_name: string;
   branch_name: string;
-  opening_balance: string;
-  available_balance: string;
+  opening_balance: number;
+  available_balance: number;
   balance_transfer: 'YES' | 'NO';
   transfer_acc_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
   transfer_acc_id: Types.ObjectId;
-  charge_percent: string;
+  charge_percent: number;
   status: 'ACTIVE' | 'INACTIVE';
 }
 

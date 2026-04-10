@@ -27,14 +27,14 @@ const AccountSchema = new Schema<ICreateAccount>(
       trim: true,
     },
     opening_balance: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
     available_balance: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
     balance_transfer: {
       type: String,
@@ -52,7 +52,7 @@ const AccountSchema = new Schema<ICreateAccount>(
       ref: 'Account',
     },
     charge_percent: {
-      type: String,
+      type: Number,
       trim: true,
     },
 

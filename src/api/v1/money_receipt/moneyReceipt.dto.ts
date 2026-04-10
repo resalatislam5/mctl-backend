@@ -5,10 +5,10 @@ export interface ICreateMoneyReceipt extends Document {
   acc_id: Types.ObjectId;
   enrollment_id: Types.ObjectId;
   student_id: Types.ObjectId;
-  amount: string;
-  paid_amount: string;
+  amount: number;
+  paid_amount: number;
   voucher_no: string;
-  charge: string;
+  charge: number;
   date: string;
 }
 export interface IMoneyReceiptList {
@@ -17,10 +17,10 @@ export interface IMoneyReceiptList {
   acc_id: string;
   enrollment_id: string;
   student_id: string;
-  amount: string;
+  amount: number;
   voucher_no: string;
-  charge: string;
-  paid_amount: string;
+  charge: number;
+  paid_amount: number;
   date: string;
 }
 

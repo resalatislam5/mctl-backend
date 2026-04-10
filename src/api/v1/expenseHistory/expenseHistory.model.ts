@@ -11,7 +11,7 @@ const ExpenseHistorySchema = new Schema<ICreateExpenseHistory>(
           required: true,
         },
         amount: {
-          type: String,
+          type: Number,
           required: true,
         },
       },
@@ -28,7 +28,7 @@ const ExpenseHistorySchema = new Schema<ICreateExpenseHistory>(
       schema: 'account',
     },
     total_amount: {
-      type: String,
+      type: Number,
       trim: true,
       required: true,
     },

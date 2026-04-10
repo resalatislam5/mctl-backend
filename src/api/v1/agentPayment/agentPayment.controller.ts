@@ -214,7 +214,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         .session(session || null);
 
       if (!commission) customError('Commission Not Found', 404);
-      console.log('commission', commission);
 
       await agentCommissionService.update(
         `${commission?._id}`,
@@ -238,9 +237,8 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           payment_method,
           voucher_no,
           date,
-          paid_amount: (
-            Number(commission?.paid_amount || 0) + Number(amount || 0)
-          ).toFixed(2),
+          paid_amount:
+            Number(commission?.paid_amount || 0) + Number(amount || 0),
         },
         session,
       );
@@ -481,7 +479,6 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
         .session(session || null);
 
       if (!commission) customError('Commission Not Found', 404);
-      console.log('commission', commission);
 
       await agentCommissionService.update(
         `${commission?._id}`,

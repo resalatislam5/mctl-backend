@@ -5,10 +5,10 @@ export interface ICreateAgentCommission extends Document {
   batch_id: Types.ObjectId;
   total_students: number;
   eligible_students: number;
-  total_amount: string;
+  total_amount: number;
   commission_rate: number;
-  commission_amount: string;
-  paid_amount: string;
+  commission_amount: number;
+  paid_amount: number;
   status: 'PENDING' | 'APPROVED' | 'PAID';
 }
 export interface IAgentCommissionList {
@@ -17,10 +17,10 @@ export interface IAgentCommissionList {
   batch_id: string;
   total_students: number;
   eligible_students: number;
-  total_amount: string;
+  total_amount: number;
   commission_rate: number;
-  commission_amount: string;
-  paid_amount?: string;
+  commission_amount: number;
+  paid_amount?: number;
   status?: 'PENDING' | 'APPROVED' | 'PAID';
 }
 

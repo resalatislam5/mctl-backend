@@ -101,7 +101,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           reference_id: data._id,
           voucher_no: `OP-${Math.floor(Math.random() * 9000 + 1000)}`,
           type: 'CREDIT',
-          amount: opening_balance || '0',
+          amount: Number(opening_balance || 0),
           description: 'Opening Balance',
         },
         session,

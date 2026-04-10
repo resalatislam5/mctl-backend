@@ -28,10 +28,10 @@ const AgentCommissionSchema = new Schema<ICreateAgentCommission>(
       default: 0,
     },
     total_amount: {
-      type: String,
+      type: Number,
       required: true,
       trim: true,
-      default: '0',
+      default: 0,
     },
     commission_rate: {
       type: Number,
@@ -40,14 +40,14 @@ const AgentCommissionSchema = new Schema<ICreateAgentCommission>(
       default: 0,
     },
     commission_amount: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
     paid_amount: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
 
     status: {

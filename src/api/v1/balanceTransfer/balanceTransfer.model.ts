@@ -14,7 +14,7 @@ const BalanceTransferSchema = new Schema<ICreateBalanceTransfer>(
       required: true,
     },
     amount: {
-      type: String,
+      type: Number,
       required: true,
     },
     date: { type: String, trim: true, require: true },

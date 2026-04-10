@@ -32,14 +32,14 @@ const AgentPaymentSchema = new Schema<ICreateAgentPayment>(
       schema: 'account',
     },
     amount: {
-      type: String,
+      type: Number,
       trim: true,
       required: true,
     },
     paid_amount: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
     reference_no: {
       type: String,

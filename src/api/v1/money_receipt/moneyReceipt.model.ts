@@ -32,19 +32,19 @@ const MoneyReceiptSchema = new Schema<ICreateMoneyReceipt>(
       schema: 'enrollment',
     },
     amount: {
-      type: String,
+      type: Number,
       trim: true,
       required: true,
     },
     paid_amount: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
     charge: {
-      type: String,
+      type: Number,
       trim: true,
-      default: '0',
+      default: 0,
     },
     date: {
       type: String,

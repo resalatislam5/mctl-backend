@@ -10,7 +10,6 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     },
     agent_id: {
       type: Types.ObjectId,
-      required: true,
       schema: 'Agent',
     },
     installment_type: {
@@ -57,12 +56,12 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
       schema: 'Package',
     },
 
-    total_amount: { type: String, required: true },
-    meal_accommodation: { type: String, required: true, default: '0' },
-    total_price: { type: String, required: true },
-    total_paid: { type: String, default: '0' },
-    discount: { type: String, default: '0' },
-    additional_discount: { type: String, default: '0' },
+    total_amount: { type: Number, required: true },
+    meal_accommodation: { type: Number, required: true, default: 0 },
+    total_price: { type: Number, required: true },
+    total_paid: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    additional_discount: { type: Number, default: 0 },
 
     installment_date: [
       {

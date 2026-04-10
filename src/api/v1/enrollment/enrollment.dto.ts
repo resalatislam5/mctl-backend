@@ -14,14 +14,14 @@ export interface ICreateEnrollment extends Document {
   installment_type: 'YES' | 'NO';
   course_ids: Types.ObjectId[];
   course_mode: 'ONLINE' | 'OFFLINE';
-  total_price: string;
+  total_price: number;
   course_type: 'SPECIFIC' | 'PACKAGE';
   package_id: Types.ObjectId;
-  total_amount: string;
-  total_paid: string;
-  meal_accommodation: string;
-  discount: string;
-  additional_discount: string;
+  total_amount: number;
+  total_paid: number;
+  meal_accommodation: number;
+  discount: number;
+  additional_discount: number;
   installment_date: { name: string; date: Date }[];
 }
 export interface IEnrollmentList {
@@ -41,12 +41,12 @@ export interface IEnrollmentList {
   installment_type: 'YES' | 'NO';
   course_type: 'SPECIFIC' | 'PACKAGE';
   package_id: Types.ObjectId;
-  total_price: string;
-  total_amount: string;
-  meal_accommodation: string;
-  total_paid: string;
-  discount: string;
-  additional_discount: string;
+  total_price: number;
+  total_amount: number;
+  meal_accommodation: number;
+  total_paid: number;
+  discount: number;
+  additional_discount: number;
   installment_date: { name: string; date: Date }[];
 }
 

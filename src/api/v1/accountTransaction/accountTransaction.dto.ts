@@ -10,26 +10,26 @@ export interface ICreateAccountTransaction extends Document {
     | 'AgentPayment';
   reference_id?: Types.ObjectId;
   type: 'CREDIT' | 'DEBIT';
-  amount: String;
-  voucher_no: String;
-  description: String;
-  date: String;
+  amount: number;
+  voucher_no: string;
+  description: string;
+  date: Date;
 }
 export interface IAccountTransactionList {
   _id?: string;
-  account_id: String | Types.ObjectId;
+  account_id: string | Types.ObjectId;
   reference_type?:
     | 'MoneyReceipt'
     | 'Agent'
     | 'ExpenseHistory'
     | 'Account'
     | 'AgentPayment';
-  reference_id?: Types.ObjectId;
+  reference_id?: Types.ObjectId | string;
   type: 'CREDIT' | 'DEBIT';
-  amount: String;
-  voucher_no: String;
-  description: String;
-  date?: String;
+  amount: number;
+  voucher_no: string;
+  description: string;
+  date?: string;
 }
 
 export interface IAccountTransactionFindAllParams {
