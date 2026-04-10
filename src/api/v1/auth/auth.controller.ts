@@ -5,6 +5,7 @@ import { customError } from '../../../utils/customError';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auditLogService from '../auditLog/auditLog.service';
+import moduleService from '../module/module.service';
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body as IAuth;
@@ -42,8 +43,23 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const check = async (req: Request, res: Response) => {
-  const { _id, name, email, permissions } = req.user;
+  const { _id, name, email, permissions, is_owner } = req.user;
 
+  if (is_owner) {
+    const module = await moduleService.findAll({ status: 'ACTIVE' });
+    const permissions = module.map((m) => {
+      return {
+        name: m.name,
+        can_create: true,
+        can_read: true,
+        can_update: true,
+        can_delete: true,
+      };
+    });
+
+    const result = { _id, name, email, permissions: permissions };
+    return res.status(200).json({ success: true, data: result });
+  }
   const result = { _id, name, email, permissions };
   res.status(200).json({ success: true, data: result });
 };

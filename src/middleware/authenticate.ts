@@ -4,7 +4,6 @@ import { IUser } from '../api/v1/user/user.model';
 import userService from '../api/v1/user/user.service';
 import { RequestWithUser } from '../types/commonTypes';
 import { customError } from '../utils/customError';
-import { permission } from 'node:process';
 export const authenticate = async (
   req: RequestWithUser,
   res: Response,

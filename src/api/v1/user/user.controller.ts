@@ -19,7 +19,7 @@ const findAll = async (
   const skip = Number(req.query.skip || 0);
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
 
-  const query: any = {};
+  const query: any = { is_owner: { $ne: true } };
 
   // search filter
   if (search) {
@@ -27,6 +27,10 @@ const findAll = async (
       { name: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
     ];
+  }
+
+  if (status) {
+    query.status = status;
   }
 
   try {
@@ -310,6 +314,9 @@ const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const findUser = await userService.findOne({ _id });
+    if (findUser?.is_owner)
+      customError('Owner account can not be deleted', 403);
+
     if (!findUser) customError('User Not Found', 404);
 
     await userService.deleteOne(_id);

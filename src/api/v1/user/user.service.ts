@@ -2,7 +2,7 @@ import mongoose, { PipelineStage } from 'mongoose';
 import { ICreateUser, IUserFindAllParams } from './user.dto';
 import User from './user.model';
 
-const findAll = ({ search, status }: IUserFindAllParams) => {
+const findAll = ({ search, status, is_owner }: IUserFindAllParams) => {
   const query: any = {};
 
   // search filter
@@ -15,6 +15,10 @@ const findAll = ({ search, status }: IUserFindAllParams) => {
   if (status) {
     query.status = status;
   }
+  if (is_owner !== undefined) {
+    query.is_owner = is_owner;
+  }
+
   return User.find(query);
 };
 

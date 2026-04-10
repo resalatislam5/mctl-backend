@@ -33,7 +33,9 @@ export const checkPermissionMiddleware = (
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.user;
-    console.log(user);
+    if (user?.is_owner) {
+      return next();
+    }
 
     const perm = user.permissions.find((p: any) => p.name === name);
     if (!perm) {
