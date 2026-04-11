@@ -1,4 +1,4 @@
-import mongoose, { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { ICreatePackage } from './package.dto';
 
 const PackageSchema = new Schema<ICreatePackage>(
@@ -10,7 +10,12 @@ const PackageSchema = new Schema<ICreatePackage>(
       indexes: true,
     },
     course_ids: {
-      type: [mongoose.Schema.Types.ObjectId],
+      type: [Types.ObjectId],
+      required: true,
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
       required: true,
     },
     total_price: {

@@ -1,11 +1,10 @@
-import { ClientSession } from 'mongoose';
+import { ClientSession, Types } from 'mongoose';
 import { customError } from '../../../utils/customError';
-import User from '../user/user.model';
 import { IAgentFindAllParams, IAgentList } from './agent.dto';
 import Agent from './agent.model';
 
-const findAll = ({ search, status }: IAgentFindAllParams) => {
-  const query: any = {};
+const findAll = ({ search, status, tenant_id }: IAgentFindAllParams) => {
+  const query: any = { tenant_id };
 
   if (search) {
     query.$or = [
@@ -21,15 +20,11 @@ const findAll = ({ search, status }: IAgentFindAllParams) => {
   return Agent.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IAgentList> }) => {
-  if (key?._id) {
-    return Agent.findById(key._id);
-  }
-
+const findOne = (key: Partial<IAgentList>) => {
   return Agent.findOne(key);
 };
 
-const create = ({
+const create = async ({
   name,
   email,
   mobile_no,
@@ -37,8 +32,9 @@ const create = ({
   commission,
   min_payment_percent,
   status,
+  tenant_id,
 }: IAgentList) => {
-  const oldAgent = User.findOne({ email });
+  const oldAgent = await Agent.findOne({ email, tenant_id });
   if (!oldAgent) customError('Agent with this email already exists', 400);
 
   const agent = new Agent({
@@ -49,28 +45,49 @@ const create = ({
     commission,
     min_payment_percent,
     status,
+    tenant_id,
   });
   return agent.save();
 };
 
-const update = (
-  _id: string,
-  data: Partial<IAgentList>,
-  session?: ClientSession | null,
-) => {
-  return Agent.findByIdAndUpdate(_id, data, {
+const update = async ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: Partial<IAgentList>;
+  session?: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  const oldAgent = await Agent.findOne({
+    email: data.email || '',
+    _id: { $ne: _id },
+    tenant_id,
+  });
+
+  if (!!oldAgent) customError('Agent with this email already exists', 400);
+
+  return Agent.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const deleteItem = (_id: string) => {
-  return Agent.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Agent.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search, status }: IAgentFindAllParams) => {
-  const query: any = {};
+const count = ({ search, status, tenant_id }: IAgentFindAllParams) => {
+  const query: any = { tenant_id };
 
   // name filter
   if (status) {

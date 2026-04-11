@@ -1,18 +1,19 @@
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { IStatus } from '../../../types/commonTypes';
 
-export interface ICreateCourse extends Document {
+export interface IBaseCourse {
   name: string;
   price: number;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
+  tenant_id: Types.ObjectId;
 }
-export interface ICourseList {
-  _id?: string;
-  name: string;
-  price: number;
-  status: 'ACTIVE' | 'INACTIVE';
+export interface ICreateCourse extends IBaseCourse, Document {}
+export interface ICourseList extends IBaseCourse {
+  _id?: Types.ObjectId;
 }
 
 export interface ICourseFindAllParams {
   search?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
+  tenant_id: Types.ObjectId;
 }

@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { ICreateAgent } from './agent.dto';
 
 const AgentSchema = new Schema<ICreateAgent>(
@@ -16,6 +16,7 @@ const AgentSchema = new Schema<ICreateAgent>(
       indexes: true,
       unique: true,
     },
+
     mobile_no: {
       type: String,
       required: true,
@@ -37,7 +38,11 @@ const AgentSchema = new Schema<ICreateAgent>(
       trim: true,
       default: 0,
     },
-
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+    },
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE'],

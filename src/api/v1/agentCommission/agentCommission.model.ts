@@ -15,6 +15,12 @@ const AgentCommissionSchema = new Schema<ICreateAgentCommission>(
       ref: 'Batch',
       index: true,
     },
+    tenant_id: {
+      type: Types.ObjectId,
+      required: true,
+      ref: 'Tenant',
+      index: true,
+    },
     total_students: {
       type: Number,
       required: true,

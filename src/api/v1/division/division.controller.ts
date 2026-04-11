@@ -63,7 +63,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Division',
-      entity_id: data?._id?.toString() as string,
+      entity_id: data?._id,
       description: `A new division has been created division_id: ${data?._id?.toString()}`,
     });
 
@@ -107,7 +107,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'UPDATE',
       entity: 'Division',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
       description: `A new division has been updated division_id: ${_id}`,
     });
@@ -142,7 +142,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'DELETE',
       entity: 'Division',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new division has been deleted division_id: ${_id}`,
     });

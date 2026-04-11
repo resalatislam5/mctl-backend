@@ -1,20 +1,22 @@
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
+import { IStatus } from '../../../types/commonTypes';
 
-export interface ICreateRole extends Document {
+export interface IBaseRole {
+  tenant_id: Types.ObjectId;
   name: string;
   permissions: PermissionTypes[];
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
 }
-export interface IRoleList {
-  _id?: string;
-  name: string;
-  permissions: PermissionTypes[];
-  status: 'ACTIVE' | 'INACTIVE';
+
+export interface ICreateRole extends IBaseRole, Document {}
+export interface IRoleList extends IBaseRole {
+  _id?: Types.ObjectId | string;
 }
 
 export interface IRoleFindAllParams {
   search?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
+  tenant_id: Types.ObjectId;
 }
 
 export type PermissionTypes = {

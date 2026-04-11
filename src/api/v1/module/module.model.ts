@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { ICreateModule } from './module.dto';
 
 const ModuleSchema = new Schema<ICreateModule>(
@@ -8,6 +8,11 @@ const ModuleSchema = new Schema<ICreateModule>(
       required: true,
       trim: true,
       indexes: true,
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
     },
     label: {
       type: String,

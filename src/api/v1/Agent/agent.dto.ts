@@ -1,26 +1,23 @@
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { IStatus } from '../../../types/commonTypes';
 
-export interface ICreateAgent extends Document {
+export interface IBaseAgent {
   name: string;
   email: string;
   mobile_no: string;
   min_limit: number;
   commission: number;
   min_payment_percent: number;
-  status: 'ACTIVE' | 'INACTIVE';
+  tenant_id: Types.ObjectId;
+  status: IStatus;
 }
-export interface IAgentList {
-  _id?: string;
-  name: string;
-  email: string;
-  mobile_no: string;
-  min_limit: number;
-  commission: number;
-  min_payment_percent: number;
-  status: 'ACTIVE' | 'INACTIVE';
+export interface ICreateAgent extends IBaseAgent, Document {}
+export interface IAgentList extends IBaseAgent {
+  _id?: Types.ObjectId;
 }
 
 export interface IAgentFindAllParams {
   search?: string;
-  status?: 'ACTIVE' | 'INACTIVE';
+  status?: IStatus;
+  tenant_id: Types.ObjectId;
 }

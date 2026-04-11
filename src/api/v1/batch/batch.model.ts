@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { ICreateBatch } from './batch.dto';
 
 const BatchSchema = new Schema<ICreateBatch>(
@@ -8,6 +8,11 @@ const BatchSchema = new Schema<ICreateBatch>(
       required: true,
       trim: true,
       indexes: true,
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
     },
     status: {
       type: String,

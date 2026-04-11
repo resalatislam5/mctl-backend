@@ -3,6 +3,11 @@ import { ICreateRole } from './role.dto';
 
 const RoleSchema = new Schema<ICreateRole>(
   {
+    tenant_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+    },
     name: {
       type: String,
       required: true,

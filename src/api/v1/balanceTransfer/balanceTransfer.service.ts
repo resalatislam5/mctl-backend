@@ -1,12 +1,12 @@
-import { ClientSession, PipelineStage } from 'mongoose';
+import { ClientSession, PipelineStage, Types } from 'mongoose';
 import {
   IBalanceTransferFindAllParams,
   IBalanceTransferList,
 } from './balanceTransfer.dto';
 import { BalanceTransfer } from './balanceTransfer.model';
 
-const findAll = ({ search }: IBalanceTransferFindAllParams) => {
-  const query: any = {};
+const findAll = ({ search, tenant_id }: IBalanceTransferFindAllParams) => {
+  const query: any = { tenant_id };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
@@ -15,11 +15,7 @@ const findAll = ({ search }: IBalanceTransferFindAllParams) => {
   return BalanceTransfer.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IBalanceTransferList> }) => {
-  if (key?._id) {
-    return BalanceTransfer.findById(key._id);
-  }
-
+const findOne = (key: Partial<IBalanceTransferList>) => {
   return BalanceTransfer.findOne(key);
 };
 
@@ -31,6 +27,7 @@ const create = (
     note,
     to_acc_id,
     voucher_no,
+    tenant_id,
   }: IBalanceTransferList,
   session?: ClientSession | null,
 ) => {
@@ -41,28 +38,41 @@ const create = (
     note,
     to_acc_id,
     voucher_no,
+    tenant_id,
   });
   return data.save({ ...(session && { session }) });
 };
 
-const update = (
-  _id: string,
-  data: Partial<IBalanceTransferList>,
-  session?: ClientSession | null,
-) => {
-  return BalanceTransfer.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: Partial<IBalanceTransferList>;
+  session?: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  return BalanceTransfer.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const deleteItem = (_id: string) => {
-  return BalanceTransfer.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return BalanceTransfer.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search }: IBalanceTransferFindAllParams) => {
-  const query: any = {};
+const count = ({ search, tenant_id }: IBalanceTransferFindAllParams) => {
+  const query: any = { tenant_id };
 
   // search filter
   if (search) {

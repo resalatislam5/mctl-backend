@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { ICreateCourse } from './course.dto';
 
 const CourseSchema = new Schema<ICreateCourse>(
@@ -13,6 +13,12 @@ const CourseSchema = new Schema<ICreateCourse>(
       type: Number,
       required: true,
       trim: true,
+      indexes: true,
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
       indexes: true,
     },
     status: {

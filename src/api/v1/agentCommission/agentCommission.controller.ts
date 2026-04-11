@@ -12,7 +12,7 @@ import agentCommissionService from './agentCommission.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const query: any = {};
+    const query: any = { tenant_id: req.user?.tenant_id };
     const batch_id = req.query?.batch_id?.toString() || '';
     const agent_id = req.query?.agent_id?.toString() || '';
 
@@ -90,7 +90,8 @@ const findSingle = async (
     checkMongooseId(_id);
 
     const data = await agentCommissionService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id),
+      tenant_id: req.user?.tenant_id,
     });
     if (!data) {
       customError('Agent not found', 404);
@@ -105,11 +106,14 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
   const { batch_id } = req.body as IAgentCommissionList;
 
   try {
-    const agents = await agentService.findAll({});
+    const agents = await agentService.findAll({
+      tenant_id: req.user?.tenant_id,
+    });
     for (const agent of agents) {
       const enrollments = await enrollmentService.findAll({
         agent_id: agent?._id,
         batch_id: convertObjectID(batch_id),
+        tenant_id: req.user?.tenant_id,
       });
       if (!enrollments.length) continue;
 
@@ -146,10 +150,9 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
       }
 
       const existing = await agentCommissionService.findOne({
-        key: {
-          agent_id: `${agent._id}`,
-          batch_id,
-        },
+        agent_id: agent._id,
+        batch_id,
+        tenant_id: req.user?.tenant_id,
       });
 
       // 🔒 paid হলে skip
@@ -160,24 +163,29 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
       if (!existing) {
         // 👉 CREATE
         await agentCommissionService.create({
-          agent_id: `${agent._id}`,
+          agent_id: agent?._id,
           batch_id,
           total_students,
           eligible_students,
           total_amount: total_amount,
           commission_rate: agent.commission,
           commission_amount: commission_amount,
+          tenant_id: req.user?.tenant_id,
         });
       } else {
         // 👉 UPDATE
 
-        await agentCommissionService.update(existing._id.toString(), {
-          $set: {
-            total_students,
-            eligible_students,
-            total_amount,
-            commission_rate: agent.commission,
-            commission_amount,
+        await agentCommissionService.update({
+          _id: existing._id,
+          tenant_id: req.user?.tenant_id,
+          data: {
+            $set: {
+              total_students,
+              eligible_students,
+              total_amount,
+              commission_rate: agent.commission,
+              commission_amount,
+            },
           },
         });
       }
@@ -188,7 +196,7 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Agent',
-      entity_id: batch_id as string,
+      entity_id: convertObjectID(batch_id),
       description: `A new batch commission has been generate batch_id: ${batch_id}`,
     });
 
@@ -203,7 +211,7 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const query: any = {};
+    const query: any = { tenant_id: req.user?.tenant_id };
     const agent_id = req.query?.agent_id?.toString() || '';
 
     if (agent_id) {

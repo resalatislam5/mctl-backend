@@ -12,3 +12,8 @@ export interface RequestWithUser extends Request {
 export interface IParams {
   _id?: string;
 }
+
+export type IGender = 'MALE' | 'FEMALE' | 'OTHER';
+
+export type IStatus = 'ACTIVE' | 'INACTIVE';
+export type IPaymentMethod = 'CASH' | 'BANK' | 'MOBILE_BANKING';

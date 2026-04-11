@@ -3,7 +3,10 @@ import moduleService from './module.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await moduleService.findAll({ status: 'ACTIVE' });
+    const data = await moduleService.findAll({
+      status: 'ACTIVE',
+      tenant_id: req.user?.tenant_id,
+    });
     res.json({ success: true, data });
   } catch (err) {
     next(err);

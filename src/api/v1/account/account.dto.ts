@@ -1,7 +1,8 @@
 import { Document, Types } from 'mongoose';
+import { IPaymentMethod, IStatus } from '../../../types/commonTypes';
 
-export interface ICreateAccount extends Document {
-  account_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
+export interface IBaseAccount {
+  account_type: IPaymentMethod;
   name: string;
   acc_number: string;
   bank_name: string;
@@ -9,29 +10,20 @@ export interface ICreateAccount extends Document {
   opening_balance: number;
   available_balance: number;
   balance_transfer: 'YES' | 'NO';
-  transfer_acc_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
+  transfer_acc_type: IPaymentMethod;
   transfer_acc_id: Types.ObjectId;
   charge_percent: number;
-  status: 'ACTIVE' | 'INACTIVE';
+  tenant_id: Types.ObjectId;
+  status: IStatus;
 }
-export interface IAccountList {
+export interface ICreateAccount extends IBaseAccount, Document {}
+export interface IAccountList extends IBaseAccount {
   _id?: string | Types.ObjectId;
-  account_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
-  name: string;
-  acc_number: string;
-  bank_name: string;
-  branch_name: string;
-  opening_balance: number;
-  available_balance: number;
-  balance_transfer: 'YES' | 'NO';
-  transfer_acc_type: 'CASH' | 'BANK' | 'MOBILE_BANKING';
-  transfer_acc_id: Types.ObjectId;
-  charge_percent: number;
-  status: 'ACTIVE' | 'INACTIVE';
 }
 
 export interface IAccountFindAllParams {
   search?: string;
-  status?: 'ACTIVE' | 'INACTIVE';
+  status?: IStatus;
   account_type?: string;
+  tenant_id: Types.ObjectId;
 }

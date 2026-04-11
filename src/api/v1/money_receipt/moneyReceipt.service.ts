@@ -1,12 +1,16 @@
-import { ClientSession, PipelineStage } from 'mongoose';
+import { ClientSession, PipelineStage, Types } from 'mongoose';
 import {
   IMoneyReceiptFindAllParams,
   IMoneyReceiptList,
 } from './moneyReceipt.dto';
 import MoneyReceipt from './moneyReceipt.model';
 
-const findAll = ({ search, agent_id }: IMoneyReceiptFindAllParams) => {
-  const query: Record<string, unknown> = {};
+const findAll = ({
+  search,
+  agent_id,
+  tenant_id,
+}: IMoneyReceiptFindAllParams) => {
+  const query: Record<string, unknown> = { tenant_id };
 
   // search filter
   if (search) {
@@ -18,10 +22,10 @@ const findAll = ({ search, agent_id }: IMoneyReceiptFindAllParams) => {
   return MoneyReceipt.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IMoneyReceiptList> }) => {
-  if (key?._id) {
-    return MoneyReceipt.findById(key._id);
-  }
+const findOne = (key: Partial<IMoneyReceiptList>) => {
+  // if (key?._id) {
+  //   return MoneyReceipt.findById(key._id);
+  // }
 
   return MoneyReceipt.findOne(key);
 };
@@ -37,6 +41,7 @@ const create = (
     student_id,
     date,
     charge,
+    tenant_id,
   }: IMoneyReceiptList,
   session?: ClientSession | null,
 ) => {
@@ -50,32 +55,49 @@ const create = (
     student_id,
     date,
     charge,
+    tenant_id,
   });
   return moneyReceipt.save({ ...(session && { session }) });
 };
 
-const update = (
-  _id: string,
-  data: Partial<IMoneyReceiptList>,
-  session?: ClientSession | null,
-) => {
-  return MoneyReceipt.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: Partial<IMoneyReceiptList>;
+  session?: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  return MoneyReceipt.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const deleteItem = (_id: string) => {
-  return MoneyReceipt.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return MoneyReceipt.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search }: IMoneyReceiptFindAllParams) => {
-  const query: Record<string, unknown> = {};
+const count = ({ search, agent_id, tenant_id }: IMoneyReceiptFindAllParams) => {
+  const query: Record<string, unknown> = { tenant_id };
 
   // search filter
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
+  }
+
+  if (agent_id) {
+    query.agent_id = agent_id;
   }
 
   return MoneyReceipt.countDocuments(query);

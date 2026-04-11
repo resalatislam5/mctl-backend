@@ -17,8 +17,9 @@ const findAll = ({
   from_date,
   to_date,
   reference_id,
+  tenant_id,
 }: IAccountTransactionFindAllParams) => {
-  const query: any = {};
+  const query: any = { tenant_id };
 
   if (account_id) {
     query.account_id = account_id;
@@ -43,6 +44,7 @@ const create = (
     reference_id,
     voucher_no,
     type,
+    tenant_id,
   }: IAccountTransactionList,
   session?: ClientSession | null,
 ) => {
@@ -55,32 +57,35 @@ const create = (
     reference_id,
     voucher_no,
     type,
+    tenant_id,
   });
   return data.save({ ...(session && { session }) });
 };
 
-const findOne = ({ key }: { key?: Partial<IAccountTransactionList> }) => {
-  if (key?._id) {
-    return AccountTransaction.findById(key._id);
-  }
-
+const findOne = (key: Partial<IAccountTransactionList>) => {
   return AccountTransaction.findOne(key);
 };
 
-const update = (
-  _id: string | Types.ObjectId,
-  data: UpdateQuery<IAccountTransactionList>,
-  session?: ClientSession | null,
-) => {
-  return AccountTransaction.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: string | Types.ObjectId;
+  data: UpdateQuery<IAccountTransactionList>;
+  session?: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  return AccountTransaction.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const count = ({ account_id }: IAccountTransactionFindAllParams) => {
-  const query: any = {};
+const count = ({ account_id, tenant_id }: IAccountTransactionFindAllParams) => {
+  const query: any = { tenant_id };
 
   // name filter
   if (account_id) {
@@ -90,8 +95,14 @@ const count = ({ account_id }: IAccountTransactionFindAllParams) => {
   return AccountTransaction.countDocuments(query);
 };
 
-const deleteItem = (_id: string) => {
-  return AccountTransaction.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return AccountTransaction.findOneAndDelete({ _id, tenant_id });
 };
 
 const deleteMany = (filter: Record<string, any>): Query<DeleteResult, any> => {

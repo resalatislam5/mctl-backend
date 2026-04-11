@@ -8,6 +8,8 @@ import { IAccountList } from './account.dto';
 import accountService from './account.service';
 import accountTransactionService from '../accountTransaction/accountTransaction.service';
 import { withTransaction } from '../../../utils/withTransaction';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
+import { Types } from 'mongoose';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -18,11 +20,11 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [data, total] = await Promise.all([
       accountService
-        .findAll({ search, status })
+        .findAll({ search, status, tenant_id: req.user?.tenant_id })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
-      accountService.count({ search, status }),
+      accountService.count({ search, status, tenant_id: req.user?.tenant_id }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -39,7 +41,10 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await accountService.findOne({ key: { _id: _id as string } });
+    const data = await accountService.findOne({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
     if (!data) {
       customError('Account not found', 404);
     }
@@ -79,6 +84,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           transfer_acc_type,
           transfer_acc_id,
           status,
+          tenant_id: req.user?.tenant_id,
         },
         session,
       );
@@ -89,7 +95,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           user: req.user,
           action: 'CREATE',
           entity: 'Account',
-          entity_id: data?._id?.toString() as string,
+          entity_id: data?._id,
           description: `A new account has been created account_id: ${data?._id?.toString()}`,
         },
         session,
@@ -103,6 +109,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           type: 'CREDIT',
           amount: Number(opening_balance || 0),
           description: 'Opening Balance',
+          tenant_id: req.user?.tenant_id,
         },
         session,
       );
@@ -139,7 +146,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await accountService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) return customError('Account not found', 404);
     const data = await withTransaction(async (session) => {
@@ -168,9 +176,10 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
       let data;
       if (balance_transfer === 'NO') {
-        data = await accountService.update(
-          _id as string,
-          {
+        data = await accountService.update({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+          data: {
             ...updateData,
             $unset: {
               transfer_acc_id: '',
@@ -179,35 +188,40 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             },
           },
           session,
-        );
+        });
       } else {
-        data = await accountService.update(
-          _id as string,
-          {
+        data = await accountService.update({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+          data: {
             ...updateData,
-            available_balance: '0',
-            opening_balance: '0',
+            available_balance: 0,
+            opening_balance: 0,
           },
           session,
-        );
+        });
       }
 
       const mainTx = await accountTransactionService
         .findOne({
-          key: { reference_id: findSingle._id, type: 'CREDIT' },
+          reference_id: findSingle._id,
+          type: 'CREDIT',
+          tenant_id: req.user?.tenant_id,
         })
         .session(session);
       if (!mainTx?._id) customError('Account transaction not found', 404);
 
-      await accountTransactionService.update(
-        `${mainTx?._id}`,
-        {
+      await accountTransactionService.update({
+        _id: mainTx?._id as Types.ObjectId,
+        tenant_id: req.user?.tenant_id,
+        data: {
           type: 'CREDIT',
           amount: opening_balance,
           description: 'Opening Balance',
         },
         session,
-      );
+      });
+
       const compareChange = detectChanges(
         findSingle.toObject(),
         data?.toObject(),
@@ -219,7 +233,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           user: req.user,
           action: 'UPDATE',
           entity: 'Account',
-          entity_id: _id as string,
+          entity_id: convertObjectID(_id as string),
           changes: compareChange,
           description: `A new account has been updated account_id: ${_id}`,
         },
@@ -246,7 +260,8 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     await withTransaction(async (session) => {
       const findSingle = await accountService
         .findOne({
-          key: { _id: _id as string },
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
         })
         .session(session);
       if (!findSingle) {
@@ -254,22 +269,32 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       }
       const mainTx = await accountTransactionService
         .findOne({
-          key: { reference_id: findSingle._id, type: 'CREDIT' },
+          reference_id: findSingle._id,
+          type: 'CREDIT',
+          tenant_id: req.user?.tenant_id,
         })
         .session(session);
 
       await accountTransactionService
-        .deleteItem(`${mainTx?._id}`)
+        .deleteItem({
+          _id: mainTx?._id as Types.ObjectId,
+          tenant_id: req.user?.tenant_id,
+        })
         .session(session);
 
-      await accountService.deleteItem(_id as string).session(session);
+      await accountService
+        .deleteItem({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
 
       await auditLogService.create({
         req,
         user: req.user,
         action: 'DELETE',
         entity: 'Account',
-        entity_id: _id as string,
+        entity_id: convertObjectID(_id as string),
         changes: findSingle,
         description: `A new account has been deleted account_id: ${_id}`,
       });
@@ -298,6 +323,7 @@ const select = async (req: Request, res: Response, next: NextFunction) => {
       .findAll({
         status: 'ACTIVE',
         account_type: new_account_type,
+        tenant_id: req.user?.tenant_id,
       })
       .select('name code _id');
     res.json({ success: true, data });

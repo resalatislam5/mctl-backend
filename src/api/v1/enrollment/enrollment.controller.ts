@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import mongoose from 'mongoose';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
 import auditLogService from '../auditLog/auditLog.service';
@@ -9,10 +9,9 @@ import { generateCode } from '../counter/generateCode';
 import packageService from '../package_new/package.service';
 import { IEnrollmentList } from './enrollment.dto';
 import enrollmentService from './enrollment.service';
-import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
-  const query: any = {};
+  const query: any = { tenant_id: req.user?.tenant_id };
   const search = req.query.search?.toString() || '';
   const student_id = req.query.student_id?.toString() || '';
   const limit = Number(req.query.limit || 100);
@@ -20,6 +19,11 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   if (student_id) {
     query.student_id = convertObjectID(student_id);
   }
+
+  if (search) {
+    query.$or = [{ name: { $regex: search, $options: 'i' } }];
+  }
+
   try {
     const data = await enrollmentService.aggregate([
       {
@@ -108,9 +112,8 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const objId = new mongoose.Types.ObjectId(_id);
     const data = await enrollmentService.aggregate([
-      { $match: { _id: objId } },
+      { $match: { _id: convertObjectID(_id) } },
       {
         $lookup: {
           from: 'students',
@@ -251,12 +254,18 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     meal_accommodation,
   } = req.body as IEnrollmentList;
   try {
-    const code = await generateCode('enrollment', 'ENR');
+    const code = await generateCode(
+      'enrollment',
+      'ENR',
+      null,
+      req.user?.tenant_id,
+    );
 
     let newCourses: IEnrollmentList['courses'] = [];
     if (course_type === 'PACKAGE') {
       const data = await packageService.findOne({
-        key: { _id: `${package_id}` },
+        _id: convertObjectID(package_id),
+        tenant_id: req.user?.tenant_id,
       });
       newCourses =
         data?.course_ids?.map((item) => ({
@@ -293,6 +302,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       agent_id,
       installment_type,
       meal_accommodation,
+      tenant_id: req.user?.tenant_id,
     });
 
     await auditLogService.create({
@@ -300,7 +310,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Enrollment',
-      entity_id: data?._id?.toString() as string,
+      entity_id: data?._id,
       description: `A new Enrollment has been created Enrollment_id: ${data?._id?.toString()}`,
     });
 
@@ -341,8 +351,10 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await enrollmentService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
+
     if (!findSingle) {
       return customError('Enrollment not found', 404);
     }
@@ -363,7 +375,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
     if (course_type === 'PACKAGE') {
       const data = await packageService.findOne({
-        key: { _id: `${package_id}` },
+        _id: convertObjectID(package_id),
+        tenant_id: req.user?.tenant_id,
       });
 
       newCourses =
@@ -389,25 +402,29 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         }) || [];
     }
 
-    const data = await enrollmentService.update(_id as string, {
-      additional_discount,
-      admission_date,
-      batch_id,
-      code,
-      course_mode,
-      courses: newCourses,
-      discount,
-      installment_date,
-      student_id,
-      total_amount,
-      total_price,
-      total_paid,
-      course_type,
-      package_id,
-      course_ids: course_type === 'SPECIFIC' ? course_ids : [],
-      agent_id,
-      installment_type,
-      meal_accommodation,
+    const data = await enrollmentService.update({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      data: {
+        additional_discount,
+        admission_date,
+        batch_id,
+        code,
+        course_mode,
+        courses: newCourses,
+        discount,
+        installment_date,
+        student_id,
+        total_amount,
+        total_price,
+        total_paid,
+        course_type,
+        package_id,
+        course_ids: course_type === 'SPECIFIC' ? course_ids : [],
+        agent_id,
+        installment_type,
+        meal_accommodation,
+      },
     });
 
     const compareChange = detectChanges(
@@ -420,7 +437,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'UPDATE',
       entity: 'Enrollment',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
       description: `A new Enrollment has been deleted Enrollment_id: ${_id}`,
     });
@@ -442,20 +459,24 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await enrollmentService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Enrollment not found', 404);
     }
 
-    await enrollmentService.deleteItem(_id as string);
+    await enrollmentService.deleteItem({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
 
     await auditLogService.create({
       req,
       user: req.user,
       action: 'DELETE',
       entity: 'Enrollment',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new Enrollment has been deleted Enrollment_id: ${_id}`,
     });
@@ -470,10 +491,10 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
-  const student_id = req.query?.student_id?.toString() || '';
+  // const student_id = req.query?.student_id?.toString() || '';
   try {
     const data = await enrollmentService
-      .findAll({ student_id })
+      .findAll({ tenant_id: req.user?.tenant_id })
       .select('total_amount total_paid code _id');
     res.json({ success: true, data });
   } catch (err) {

@@ -3,11 +3,12 @@ import { IParams } from '../../../types/commonTypes';
 import { customError } from '../../../utils/customError';
 
 import { checkMongooseId } from '../../../utils/checkMongooseId';
-import batchService from './batch.service';
-import { IBatchList } from './batch.dto';
+
 import auditLogService from '../auditLog/auditLog.service';
 import { detectChanges } from '../../../utils/detectChanges';
+import tenantService from './tenant.service';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
+import { ICreateTenant, ITenantList } from './tenant.dto';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -16,12 +17,12 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
   try {
     const [data, total] = await Promise.all([
-      batchService
-        .findAll({ search, status, tenant_id: req.user?.tenant_id })
+      tenantService
+        .findAll({ search, status })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
-      batchService.count({ search, status, tenant_id: req.user?.tenant_id }),
+      tenantService.count({ search, status }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -38,12 +39,11 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await batchService.findOne({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
+    const data = await tenantService.findOne({
+      key: { _id: convertObjectID(_id) },
     });
     if (!data) {
-      customError('Batch not found', 404);
+      customError('Tenant not found', 404);
     }
     res.json({ success: true, data });
   } catch (err) {
@@ -52,26 +52,26 @@ const findSingle = async (
 };
 
 const create = async (req: Request, res: Response, next: NextFunction) => {
-  const { batch_no, status } = req.body as IBatchList;
+  const { name, email, status } = req.body as ICreateTenant;
   try {
-    const data = await batchService.create({
-      batch_no,
+    const data = await tenantService.create({
+      name,
+      email,
       status,
-      tenant_id: req.user?.tenant_id,
     });
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'CREATE',
-      entity: 'Batch',
-      entity_id: data?._id,
-      description: `A new batch has been created batch_id: ${data?._id?.toString()}`,
-    });
+    // await auditLogService.create({
+    //   req,
+    //   user: req.user,
+    //   action: 'CREATE',
+    //   entity: 'Batch',
+    //   entity_id: data?._id,
+    //   description: `A new batch has been created batch_id: ${data?._id?.toString()}`,
+    // });
 
     res.json({
       success: true,
-      message: 'Batch created successfully',
+      message: 'Tenant created successfully',
       data,
     });
   } catch (err) {
@@ -81,40 +81,39 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
 
 const update = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
-  const { batch_no, status } = req.body as IBatchList;
+  const { name, email, status } = req.body as ICreateTenant;
   try {
     checkMongooseId(_id as string);
-    const findSingle = await batchService.findOne({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
+    const findSingle = await tenantService.findOne({
+      key: { _id: convertObjectID(_id as string) },
     });
     if (!findSingle) {
-      return customError('Batch not found', 404);
+      return customError('Tenant not found', 404);
     }
 
-    const data = await batchService.update({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-      data: { batch_no, status },
+    const data = await tenantService.update(_id as string, {
+      name,
+      email,
+      status,
     });
 
     const compareChange = detectChanges(
       findSingle.toObject(),
       data?.toObject(),
     );
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'UPDATE',
-      entity: 'Batch',
-      entity_id: findSingle._id,
-      changes: compareChange,
-      description: `A new batch has been updated batch_id: ${_id}`,
-    });
+    // await auditLogService.create({
+    //   req,
+    //   user: req.user,
+    //   action: 'UPDATE',
+    //   entity: 'Batch',
+    //   entity_id: findSingle._id,
+    //   changes: compareChange,
+    //   description: `A new batch has been updated batch_id: ${_id}`,
+    // });
 
     res.json({
       success: true,
-      message: 'Batch updated successfully',
+      message: 'Tenant updated successfully',
       data: data,
     });
   } catch (err) {
@@ -128,28 +127,24 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   try {
     checkMongooseId(_id as string);
 
-    const findSingle = await batchService.findOne({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
+    const findSingle = await tenantService.findOne({
+      key: { _id: convertObjectID(_id as string) },
     });
     if (!findSingle) {
-      return customError('Batch not found', 404);
+      return customError('Tenant not found', 404);
     }
 
-    await batchService.deleteItem({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-    });
+    await tenantService.deleteItem(_id as string);
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'DELETE',
-      entity: 'Batch',
-      entity_id: findSingle._id,
-      changes: findSingle,
-      description: `A new batch has been deleted batch_id: ${_id}`,
-    });
+    // await auditLogService.create({
+    //   req,
+    //   user: req.user,
+    //   action: 'DELETE',
+    //   entity: 'Batch',
+    //   entity_id: findSingle._id,
+    //   changes: findSingle,
+    //   description: `A new batch has been deleted batch_id: ${_id}`,
+    // });
     res.json({
       success: true,
       message: 'Batch deleted successfully',
@@ -161,8 +156,8 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await batchService
-      .findAll({ status: 'ACTIVE', tenant_id: req.user?.tenant_id })
+    const data = await tenantService
+      .findAll({ status: 'ACTIVE' })
       .select('batch_no _id');
     res.json({ success: true, data });
   } catch (err) {

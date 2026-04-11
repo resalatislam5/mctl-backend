@@ -1,6 +1,6 @@
 import { Document, Types } from 'mongoose';
 
-export interface ICreateEnrollment extends Document {
+export interface IBaseEnrollment {
   student_id: Types.ObjectId;
   batch_id: Types.ObjectId;
   agent_id: Types.ObjectId;
@@ -17,6 +17,7 @@ export interface ICreateEnrollment extends Document {
   total_price: number;
   course_type: 'SPECIFIC' | 'PACKAGE';
   package_id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
   total_amount: number;
   total_paid: number;
   meal_accommodation: number;
@@ -24,36 +25,16 @@ export interface ICreateEnrollment extends Document {
   additional_discount: number;
   installment_date: { name: string; date: Date }[];
 }
-export interface IEnrollmentList {
+export interface ICreateEnrollment extends IBaseEnrollment, Document {}
+export interface IEnrollmentList extends IBaseEnrollment {
   _id?: string | Types.ObjectId;
-  code: string;
-  student_id: Types.ObjectId;
-  batch_id: Types.ObjectId;
-  agent_id: Types.ObjectId;
-  admission_date: Date;
-  course_ids: Types.ObjectId[];
-  courses: {
-    course_id: Types.ObjectId;
-    status: 'YES' | 'NO';
-    soft_copy: 'YES' | 'NO';
-  }[];
-  course_mode: 'ONLINE' | 'OFFLINE';
-  installment_type: 'YES' | 'NO';
-  course_type: 'SPECIFIC' | 'PACKAGE';
-  package_id: Types.ObjectId;
-  total_price: number;
-  total_amount: number;
-  meal_accommodation: number;
-  total_paid: number;
-  discount: number;
-  additional_discount: number;
-  installment_date: { name: string; date: Date }[];
 }
 
 export interface IEnrollmentFindAllParams {
   search?: string;
-  student_id?: string;
+  student_id?: Types.ObjectId;
   agent_id?: Types.ObjectId;
   batch_id?: Types.ObjectId;
+  tenant_id: Types.ObjectId;
   installment_date?: object;
 }

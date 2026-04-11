@@ -1,31 +1,26 @@
 import { Document, Types } from 'mongoose';
+import { IPaymentMethod } from '../../../types/commonTypes';
 
-export interface ICreateMoneyReceipt extends Document {
-  payment_method: 'CASH' | 'BANK' | 'MOBILE_BANKING';
+export interface IBaseMoneyReceipt {
+  payment_method: IPaymentMethod;
   acc_id: Types.ObjectId;
   enrollment_id: Types.ObjectId;
   student_id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
   amount: number;
   paid_amount: number;
   voucher_no: string;
   charge: number;
   date: string;
 }
-export interface IMoneyReceiptList {
-  _id?: string;
-  payment_method: 'CASH' | 'BANK' | 'MOBILE_BANKING';
-  acc_id: string;
-  enrollment_id: string;
-  student_id: string;
-  amount: number;
-  voucher_no: string;
-  charge: number;
-  paid_amount: number;
-  date: string;
+export interface ICreateMoneyReceipt extends IBaseMoneyReceipt, Document {}
+export interface IMoneyReceiptList extends IBaseMoneyReceipt {
+  _id?: Types.ObjectId;
 }
 
 export interface IMoneyReceiptFindAllParams {
   search?: string;
-  agent_id?: string;
-  batch_id?: string;
+  agent_id?: Types.ObjectId;
+  batch_id?: Types.ObjectId;
+  tenant_id: Types.ObjectId;
 }

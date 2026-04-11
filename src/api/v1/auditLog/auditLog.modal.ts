@@ -1,15 +1,16 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IAuditLog extends Document {
-  user_id: mongoose.Types.ObjectId;
+  user_id: Types.ObjectId;
   user_name?: string;
   action: 'LOGIN' | 'CREATE' | 'UPDATE' | 'DELETE';
   entity: string;
-  entity_id?: mongoose.Types.ObjectId;
+  entity_id?: Types.ObjectId;
   changes?: string;
   ip_address?: string;
   user_agent?: string;
   description: string;
+  tenant_id: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,8 +18,13 @@ export interface IAuditLog extends Document {
 const auditLogSchema = new Schema<IAuditLog>(
   {
     user_id: {
-      type: Schema.Types.ObjectId,
+      type: Types.ObjectId,
       ref: 'User',
+      required: true,
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
       required: true,
     },
 
@@ -38,7 +44,7 @@ const auditLogSchema = new Schema<IAuditLog>(
     },
 
     entity_id: {
-      type: Schema.Types.ObjectId,
+      type: Types.ObjectId,
     },
 
     changes: {

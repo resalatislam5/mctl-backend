@@ -4,6 +4,7 @@ import auditLogService from '../auditLog/auditLog.service';
 import userService from '../user/user.service';
 import { customError } from './../../../utils/customError';
 import { IChangePassword } from './profile.dto';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const changePassword = async (
   req: Request,
@@ -15,7 +16,10 @@ const changePassword = async (
   try {
     const { _id } = req.user;
 
-    const findSingle = await userService.findOne({ _id: _id as string });
+    const findSingle = await userService.findOne({
+      _id: _id,
+      tenant_id: req.user.tenant_id,
+    });
 
     if (!findSingle) {
       return customError('User not found', 404);
@@ -37,7 +41,7 @@ const changePassword = async (
       user: req.user,
       action: 'UPDATE',
       entity: 'Password',
-      entity_id: _id as string,
+      entity_id: convertObjectID(_id),
       description: `Password has been updated for user: ${_id}`,
     });
 

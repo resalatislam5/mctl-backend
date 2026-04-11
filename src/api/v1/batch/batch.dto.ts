@@ -1,16 +1,18 @@
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { IStatus } from '../../../types/commonTypes';
 
-export interface ICreateBatch extends Document {
+export interface IBaseBatch {
   batch_no: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  tenant_id: Types.ObjectId;
+  status: IStatus;
 }
-export interface IBatchList {
-  _id?: string;
-  batch_no: string;
-  status: 'ACTIVE' | 'INACTIVE';
+export interface ICreateBatch extends IBaseBatch, Document {}
+export interface IBatchList extends IBaseBatch {
+  _id?: Types.ObjectId;
 }
 
 export interface IBatchFindAllParams {
   search?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
+  tenant_id: Types.ObjectId;
 }

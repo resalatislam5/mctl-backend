@@ -1,12 +1,12 @@
-import { ClientSession, PipelineStage } from 'mongoose';
+import { ClientSession, PipelineStage, Types } from 'mongoose';
 import {
   IExpenseHistoryFindAllParams,
   IExpenseHistoryList,
 } from './expenseHistory.dto';
 import { ExpenseHistory } from './expenseHistory.model';
 
-const findAll = ({ search }: IExpenseHistoryFindAllParams) => {
-  const query: any = {};
+const findAll = ({ search, tenant_id }: IExpenseHistoryFindAllParams) => {
+  const query: any = { tenant_id };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
@@ -15,11 +15,7 @@ const findAll = ({ search }: IExpenseHistoryFindAllParams) => {
   return ExpenseHistory.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IExpenseHistoryList> }) => {
-  if (key?._id) {
-    return ExpenseHistory.findById(key._id);
-  }
-
+const findOne = (key: Partial<IExpenseHistoryList>) => {
   return ExpenseHistory.findOne(key);
 };
 
@@ -31,6 +27,7 @@ const create = ({
   note,
   total_amount,
   voucher_no,
+  tenant_id,
 }: IExpenseHistoryList) => {
   const data = new ExpenseHistory({
     acc_id,
@@ -40,28 +37,41 @@ const create = ({
     note,
     total_amount,
     voucher_no,
+    tenant_id,
   });
   return data.save();
 };
 
-const update = (
-  _id: string,
-  data: Partial<IExpenseHistoryList>,
-  session: ClientSession | null,
-) => {
-  return ExpenseHistory.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: Partial<IExpenseHistoryList>;
+  session: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  return ExpenseHistory.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const deleteItem = (_id: string) => {
-  return ExpenseHistory.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return ExpenseHistory.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search }: IExpenseHistoryFindAllParams) => {
-  const query: any = {};
+const count = ({ search, tenant_id }: IExpenseHistoryFindAllParams) => {
+  const query: any = { tenant_id };
 
   // search filter
   if (search) {

@@ -1,9 +1,14 @@
-import { PipelineStage } from 'mongoose';
+import { PipelineStage, Types } from 'mongoose';
 import { IStudentFindAllParams, IStudentList } from './student.dto';
 import { Student } from './student.model';
 
-const findAll = ({ search, status, student_id }: IStudentFindAllParams) => {
-  const query: any = {};
+const findAll = ({
+  search,
+  status,
+  student_id,
+  tenant_id,
+}: IStudentFindAllParams) => {
+  const query: any = { tenant_id };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
@@ -18,10 +23,10 @@ const findAll = ({ search, status, student_id }: IStudentFindAllParams) => {
   return Student.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IStudentList> }) => {
-  if (key?._id) {
-    return Student.findById(key._id);
-  }
+const findOne = (key: Partial<IStudentList>) => {
+  // if (key?._id) {
+  //   return Student.findById(key._id);
+  // }
 
   return Student.findOne(key);
 };
@@ -48,8 +53,9 @@ const create = ({
   village,
   image_public_id,
   status,
+  tenant_id,
 }: IStudentList) => {
-  const pkg = new Student({
+  const data = new Student({
     name,
     co_mobile,
     mobile_no,
@@ -71,20 +77,35 @@ const create = ({
     village,
     image_public_id,
     status,
+    tenant_id,
   });
-  return pkg.save();
+  return data.save();
 };
 
-const update = (_id: string, data: Partial<IStudentList>) => {
-  return Student.findByIdAndUpdate(_id, data, { new: true });
+const update = ({
+  _id,
+  tenant_id,
+  data,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+  data: Partial<IStudentList>;
+}) => {
+  return Student.findOneAndUpdate({ _id, tenant_id }, data, { new: true });
 };
 
-const deleteItem = (_id: string) => {
-  return Student.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Student.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search, status }: IStudentFindAllParams) => {
-  const query: any = {};
+const count = ({ search, status, tenant_id }: IStudentFindAllParams) => {
+  const query: any = { tenant_id };
 
   // name filter
   if (status) {

@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   role_id: mongoose.Types.ObjectId;
   is_owner?: boolean;
+  tenant_id: mongoose.Types.ObjectId;
   status: 'ACTIVE' | 'INACTIVE';
 }
 
@@ -18,6 +19,12 @@ const UserSchema = new Schema<IUser>(
     role_id: {
       type: Schema.Types.ObjectId,
       ref: 'Role',
+      required: true,
+      index: true,
+    },
+    tenant_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Tenant',
       required: true,
       index: true,
     },

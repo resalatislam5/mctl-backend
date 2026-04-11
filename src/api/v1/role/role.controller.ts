@@ -6,6 +6,7 @@ import roleService from './role.service';
 import { IRoleList } from './role.dto';
 import mongoose from 'mongoose';
 import auditLogService from '../auditLog/auditLog.service';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -15,12 +16,12 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [data, total] = await Promise.all([
       roleService
-        .findAll({ search, status })
+        .findAll({ search, status, tenant_id: req.user?.tenant_id })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 })
         .select('_id name status createdAt updatedAt'),
-      roleService.count({ search, status }),
+      roleService.count({ search, status, tenant_id: req.user?.tenant_id }),
     ]);
 
     res.json({ success: true, total, data });
@@ -41,7 +42,8 @@ const findSingle = async (
     const data = await roleService.aggregate([
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(_id),
+          _id: convertObjectID(_id),
+          tenant_id: req.user?.tenant_id,
         },
       },
 
@@ -102,6 +104,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       name,
       permissions,
       status,
+      tenant_id: req.user?.tenant_id,
     });
 
     await auditLogService.create({
@@ -109,7 +112,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Role',
-      entity_id: data?._id.toString(),
+      entity_id: data?._id,
       changes: data,
       description: `A new role has been created role_id: ${data?._id}`,
     });
@@ -131,10 +134,14 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
     const findSingle = roleService.findOne({ _id: _id as string });
     if (!findSingle) customError('Role not found', 404);
-    const data = await roleService.update(_id as string, {
-      name,
-      permissions,
-      status,
+    const data = await roleService.update({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      data: {
+        name,
+        permissions,
+        status,
+      },
     });
 
     await auditLogService.create({
@@ -142,7 +149,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'UPDATE',
       entity: 'Role',
-      entity_id: _id as string,
+      entity_id: convertObjectID(_id as string),
       changes: data,
       description: `A new role has been updated role_id: ${_id}`,
     });
@@ -168,14 +175,17 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Role not found', 404);
     }
 
-    await roleService.deleteItem(_id as string);
+    await roleService.deleteItem({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
 
     await auditLogService.create({
       req,
       user: req.user,
       action: 'DELETE',
       entity: 'Role',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new role has been deleted role_id: ${_id}`,
     });
@@ -192,7 +202,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await roleService
-      .findAll({ status: 'ACTIVE' })
+      .findAll({ status: 'ACTIVE', tenant_id: req.user?.tenant_id })
       .select('name _id');
     res.json({ success: true, data });
   } catch (err) {

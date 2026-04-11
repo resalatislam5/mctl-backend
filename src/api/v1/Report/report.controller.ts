@@ -15,7 +15,10 @@ const studentLedger = async (
   try {
     const data = await enrollmentService.aggregate([
       {
-        $match: { batch_id: convertObjectID(batch_id) },
+        $match: {
+          batch_id: convertObjectID(batch_id),
+          tenant_id: req.user?.tenant_id,
+        },
       },
       {
         $lookup: {
@@ -69,8 +72,8 @@ const studentLedger = async (
 
     res.json({
       success: true,
-      total: data[0]?.totalCount?.[0].count,
-      data: data[0]?.data,
+      total: data[0]?.totalCount?.[0]?.count || 0,
+      data: data[0]?.data || [],
     });
   } catch (err) {
     next(err);
@@ -82,7 +85,7 @@ const expenseReport = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const query: any = {};
+  const query: any = { tenant_id: req.user?.tenant_id };
   const from_date = req.query.from_date as string;
   const to_date = req.query.to_date as string;
   const head_id = req.query.head_id as string;
@@ -155,8 +158,8 @@ const expenseReport = async (
     ]);
     res.json({
       success: true,
-      total: data[0]?.totalCount[0]?.count,
-      data: data[0]?.data,
+      total: data[0]?.totalCount[0]?.count || 0,
+      data: data[0]?.data || [],
     });
   } catch (err) {
     next(err);
@@ -272,6 +275,7 @@ const upcomingInstallments = async (
           date: dateRange,
         },
       },
+      tenant_id: req.user?.tenant_id,
     };
 
     const data = await enrollmentService.aggregate([

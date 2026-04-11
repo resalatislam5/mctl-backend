@@ -1,16 +1,33 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 
 export type CounterType = {
-  name: 'enrollment';
+  name:
+    | 'enrollment'
+    | 'money_receipt'
+    | 'expense_history'
+    | 'balance_transfer'
+    | 'agent_payment';
+  tenant_id: Types.ObjectId;
   seq: number;
 };
 
 const CounterSchema = new Schema<CounterType>({
   name: {
     type: String,
-    enum: ['enrollment'],
+    enum: [
+      'enrollment',
+      'money_receipt',
+      'expense_history',
+      'balance_transfer',
+      'agent_payment',
+    ],
     required: true,
-    unique: true,
+  },
+  tenant_id: {
+    type: Types.ObjectId,
+    ref: 'Tenant',
+    required: true,
+    index: true,
   },
   seq: {
     type: Number,

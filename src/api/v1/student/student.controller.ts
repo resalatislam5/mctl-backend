@@ -5,27 +5,41 @@ import streamifier from 'streamifier';
 import cloudinary from '../../../config/cloudinary.config';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
 import auditLogService from '../auditLog/auditLog.service';
+import { IStatus } from './../../../types/commonTypes';
 import { IStudentList } from './student.dto';
 import studentService from './student.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
+  const query: any = { tenant_id: req.user?.tenant_id };
   const search = req.query.search?.toString() || '';
   const student_id = req.query.student_id?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
-  const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
+  const status = req.query.status?.toString() as IStatus;
+
+  if (search) {
+    query.search = search;
+  }
+  if (status) {
+    query.status = status;
+  }
+  if (student_id) {
+    query.student_id = convertObjectID(student_id);
+  }
+
   try {
     const [data, total] = await Promise.all([
       studentService
-        .findAll({ search, status, student_id })
+        .findAll(query)
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 })
         .select('name email code mobile_no gender nid_no status createdAt'),
-      studentService.count({ search, status, student_id }),
+      studentService.count(query),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -44,7 +58,7 @@ const findSingle = async (
 
     const objId = new mongoose.Types.ObjectId(_id);
     const data = await studentService.aggregate([
-      { $match: { _id: objId } },
+      { $match: { _id: objId, tenant_id: req.user?.tenant_id } },
 
       {
         $lookup: {
@@ -192,6 +206,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       village,
       image_public_id: publicId,
       status,
+      tenant_id: req.user?.tenant_id,
     });
 
     await auditLogService.create({
@@ -199,7 +214,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Student',
-      entity_id: data?._id?.toString() as string,
+      entity_id: data?._id,
       description: `A new Student has been created Student_id: ${data?._id?.toString()}`,
     });
 
@@ -242,8 +257,10 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await studentService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
+
     if (!findSingle) {
       return customError('Student not found', 404);
     }
@@ -276,28 +293,32 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       publicId = result.public_id;
     }
 
-    const data = await studentService.update(_id as string, {
-      name,
-      co_mobile,
-      mobile_no,
-      code,
-      country_id,
-      division_id,
-      district_id,
-      dob,
-      education,
-      email,
-      gender,
-      image: imageUrl,
-      nationality,
-      nid_no,
-      occupation,
-      office_address,
-      upazila_id,
-      image_public_id: publicId,
-      relationship,
-      village,
-      status,
+    const data = await studentService.update({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      data: {
+        name,
+        co_mobile,
+        mobile_no,
+        code,
+        country_id,
+        division_id,
+        district_id,
+        dob,
+        education,
+        email,
+        gender,
+        image: imageUrl,
+        nationality,
+        nid_no,
+        occupation,
+        office_address,
+        upazila_id,
+        image_public_id: publicId,
+        relationship,
+        village,
+        status,
+      },
     });
 
     const compareChange = detectChanges(
@@ -308,11 +329,11 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     await auditLogService.create({
       req,
       user: req.user,
-      action: 'DELETE',
+      action: 'UPDATE',
       entity: 'Student',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
-      description: `A new Student has been deleted Student_id: ${_id}`,
+      description: `A new Student has been updated Student_id: ${_id}`,
     });
 
     res.json({
@@ -332,7 +353,8 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await studentService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Student not found', 404);
@@ -340,14 +362,17 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     if (findSingle.image_public_id) {
       await cloudinary.uploader.destroy(findSingle?.image_public_id);
     }
-    await studentService.deleteItem(_id as string);
+    await studentService.deleteItem({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
 
     await auditLogService.create({
       req,
       user: req.user,
       action: 'DELETE',
       entity: 'Student',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new Student has been deleted Student_id: ${_id}`,
     });
@@ -364,7 +389,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await studentService
-      .findAll({ status: 'ACTIVE' })
+      .findAll({ status: 'ACTIVE', tenant_id: req.user?.tenant_id })
       .select('name code _id');
     res.json({ success: true, data });
   } catch (err) {

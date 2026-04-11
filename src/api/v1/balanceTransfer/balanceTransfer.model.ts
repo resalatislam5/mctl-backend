@@ -5,12 +5,17 @@ const BalanceTransferSchema = new Schema<ICreateBalanceTransfer>(
   {
     from_acc_id: {
       type: Types.ObjectId,
-      schema: 'accounts',
+      schema: 'account',
       required: true,
     },
     to_acc_id: {
       type: Types.ObjectId,
-      schema: 'accounts',
+      schema: 'account',
+      required: true,
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      schema: 'tenant',
       required: true,
     },
     amount: {

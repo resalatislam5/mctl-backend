@@ -21,6 +21,11 @@ const AccountTransactionSchema = new Schema<ICreateAccountTransaction>(
       refPath: 'reference_type',
       default: null,
     },
+    tenant_id: {
+      type: Types.ObjectId,
+      required: true,
+      ref: 'tenant',
+    },
 
     type: { type: String, enum: ['CREDIT', 'DEBIT'], required: true },
     amount: { type: Number, required: true },

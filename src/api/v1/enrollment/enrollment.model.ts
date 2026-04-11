@@ -6,11 +6,17 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     student_id: {
       type: Types.ObjectId,
       required: true,
-      schema: 'Student',
+      ref: 'Student',
     },
     agent_id: {
       type: Types.ObjectId,
-      schema: 'Agent',
+      ref: 'Agent',
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
+      index: true,
     },
     installment_type: {
       type: String,
@@ -21,7 +27,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
       unique: true,
     },
 
-    batch_id: { type: Types.ObjectId, required: true, schema: 'Batch' },
+    batch_id: { type: Types.ObjectId, required: true, ref: 'Batch' },
     admission_date: { type: Date, required: true },
 
     courses: [
@@ -29,7 +35,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
         course_id: {
           type: Types.ObjectId,
           required: true,
-          schema: 'Course',
+          ref: 'Course',
         },
         status: { type: String, enum: ['YES', 'NO'], default: 'NO' },
         soft_copy: { type: String, enum: ['YES', 'NO'], default: 'NO' },
@@ -38,7 +44,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     ],
     course_ids: {
       type: [Types.ObjectId],
-      schema: 'Course',
+      ref: 'Course',
     },
 
     course_mode: {
@@ -53,7 +59,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     },
     package_id: {
       type: Types.ObjectId,
-      schema: 'Package',
+      ref: 'Package',
     },
 
     total_amount: { type: Number, required: true },

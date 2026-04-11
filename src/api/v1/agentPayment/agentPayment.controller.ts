@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
@@ -6,16 +7,15 @@ import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
 import { withTransaction } from '../../../utils/withTransaction';
 import accountService from '../account/account.service';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
+import agentCommissionService from '../agentCommission/agentCommission.service';
 import auditLogService from '../auditLog/auditLog.service';
 import { generateCode } from '../counter/generateCode';
-import enrollmentService from '../enrollment/enrollment.service';
-import agentPaymentService from './agentPayment.service';
 import { IAgentPaymentList } from './agentPayment.dto';
-import agentCommissionService from '../agentCommission/agentCommission.service';
-import accountTransactionService from '../accountTransaction/accountTransaction.service';
+import agentPaymentService from './agentPayment.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
-  const query: any = {};
+  const query: any = { tenant_id: req.user?.tenant_id };
   const search = req.query.search?.toString() || '';
   const student_id = req.query.student_id?.toString() || '';
   const limit = Number(req.query.limit || 100);
@@ -24,6 +24,11 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   if (student_id) {
     query.student_id = convertObjectID(student_id);
   }
+
+  if (search) {
+    query.$or = [{ name: { $regex: search, $options: 'i' } }];
+  }
+
   try {
     const data = await agentPaymentService.aggregate([
       {
@@ -119,7 +124,7 @@ const findSingle = async (
     checkMongooseId(_id);
 
     const data = await agentPaymentService.aggregate([
-      { $match: { _id: convertObjectID(_id) } },
+      { $match: { _id: convertObjectID(_id), tenant_id: req.user?.tenant_id } },
       {
         $lookup: {
           from: 'agents',
@@ -192,53 +197,60 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await withTransaction(async (session) => {
       const account = await accountService
-        .findOne({
-          key: { _id: acc_id },
-        })
+        .findOne({ _id: acc_id, tenant_id: req.user?.tenant_id })
         .session(session || null);
       if (!account) customError('Account Not Found', 404);
-      await accountService.update(
-        acc_id,
-        {
+      await accountService.update({
+        _id: acc_id,
+        tenant_id: req.user?.tenant_id,
+        data: {
           available_balance: (
             Number(account?.available_balance) - Number(amount)
           ).toFixed(2),
         },
         session,
-      );
+      });
 
       const commission = await agentCommissionService
         .findOne({
-          key: { _id: commission_id },
+          _id: commission_id,
+          tenant_id: req.user?.tenant_id,
         })
         .session(session || null);
 
       if (!commission) customError('Commission Not Found', 404);
 
-      await agentCommissionService.update(
-        `${commission?._id}`,
-        {
+      await agentCommissionService.update({
+        _id: commission?._id as Types.ObjectId,
+        tenant_id: req.user?.tenant_id,
+        data: {
           paid_amount: (
             Number(commission?.paid_amount || 0) + Number(amount || 0)
           ).toFixed(2),
         },
         session,
-      );
+      });
 
-      const voucher_no = await generateCode('agent_payment', 'ANR', session);
+      const voucher_no = await generateCode(
+        'agent_payment',
+        'ANR',
+        session,
+        req.user?.tenant_id,
+      );
       const data = await agentPaymentService.create(
         {
           acc_id,
           amount,
           agent_id,
           commission_id,
-          note,
-          reference_no,
+          note: note || '',
+          reference_no: reference_no || '',
           payment_method,
           voucher_no,
           date,
           paid_amount:
             Number(commission?.paid_amount || 0) + Number(amount || 0),
+          tenant_id: req.user?.tenant_id,
         },
         session,
       );
@@ -252,6 +264,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           amount: amount,
           type: 'DEBIT',
           description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
+          tenant_id: req.user?.tenant_id,
         },
         session,
       );
@@ -262,7 +275,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         user: req.user,
         action: 'CREATE',
         entity: 'Agent Payment',
-        entity_id: data?._id?.toString() as string,
+        entity_id: data?._id,
         description: `A new agent payment has been created agent_payment_id: ${data?._id?.toString()}`,
       });
       return data;
@@ -297,7 +310,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await agentPaymentService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Agent payment not found', 404);
@@ -312,7 +326,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
       const mainTx = await accountTransactionService
         .findOne({
-          key: { reference_id: findSingle._id, type: 'DEBIT' },
+          reference_id: findSingle._id,
+          type: 'DEBIT',
+          tenant_id: req.user?.tenant_id,
         })
         .session(session);
 
@@ -322,89 +338,96 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
       if (oldAccId !== newAccId) {
         const oldAccount = await accountService
-          .findOne({ key: { _id: oldAccId } })
+          .findOne({ _id: oldAccId, tenant_id: req.user?.tenant_id })
           .session(session || null);
 
         if (!oldAccount) customError('Old Account Not Found', 404);
 
-        await accountService.update(
-          oldAccId,
-          {
+        await accountService.update({
+          _id: oldAccId,
+          tenant_id: req.user?.tenant_id,
+          data: {
             available_balance: (
               Number(oldAccount?.available_balance || 0) + oldAmount
             ).toFixed(2),
           },
           session,
-        );
+        });
 
         const newAccount = await accountService
-          .findOne({ key: { _id: newAccId } })
+          .findOne({ _id: newAccId, tenant_id: req.user?.tenant_id })
           .session(session || null);
 
         if (!newAccount) customError('New Account Not Found', 404);
 
-        await accountService.update(
-          newAccId,
-          {
+        await accountService.update({
+          _id: newAccId,
+          tenant_id: req.user?.tenant_id,
+          data: {
             available_balance: (
               Number(newAccount?.available_balance || 0) - newAmount
             ).toFixed(2),
           },
           session,
-        );
-        await accountTransactionService.update(
-          `${mainTx?._id}`,
-          {
+        });
+
+        await accountTransactionService.update({
+          _id: mainTx?._id as Types.ObjectId,
+          tenant_id: req.user?.tenant_id,
+          data: {
             account_id: newAccId,
             amount: newAmount.toFixed(2),
             description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
           },
           session,
-        );
+        });
       } else {
         const diff = newAmount - oldAmount;
 
         const account = await accountService
-          .findOne({ key: { _id: newAccId } })
+          .findOne({ _id: newAccId, tenant_id: req.user?.tenant_id })
           .session(session || null);
 
         if (!account) customError('Account Not Found', 404);
 
-        await accountService.update(
-          newAccId,
-          {
+        await accountService.update({
+          _id: newAccId,
+          tenant_id: req.user?.tenant_id,
+          data: {
             available_balance: (
               Number(account?.available_balance || 0) - diff
             ).toFixed(2),
           },
           session,
-        );
-        await accountTransactionService.update(
-          `${mainTx?._id}`,
-          {
+        });
+        await accountTransactionService.update({
+          _id: mainTx?._id as Types.ObjectId,
+          tenant_id: req.user?.tenant_id,
+          data: {
             account_id: newAccId,
             amount: amount,
             description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
           },
           session,
-        );
+        });
       }
 
-      const data = await agentPaymentService.update(
-        _id as string,
-        {
+      const data = await agentPaymentService.update({
+        _id: convertObjectID(_id as string),
+        tenant_id: req.user?.tenant_id,
+        data: {
           acc_id,
           amount,
           agent_id,
           commission_id,
-          note,
-          reference_no,
+          note: reference_no || '',
+          reference_no: reference_no || '',
           paid_amount,
           payment_method,
           date,
         },
         session,
-      );
+      });
 
       return data;
     });
@@ -419,7 +442,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'UPDATE',
       entity: 'Agent Payment',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
       description: `A new agent payment has been updated agent_payment_id: ${_id}`,
     });
@@ -441,7 +464,8 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await agentPaymentService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Agent payment not found', 404);
@@ -451,49 +475,66 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       const oldAccId = findSingle.acc_id.toString();
       const mainTx = await accountTransactionService
         .findOne({
-          key: { reference_id: findSingle._id, type: 'DEBIT' },
+          reference_id: findSingle._id,
+          type: 'DEBIT',
+          tenant_id: req.user?.tenant_id,
         })
         .session(session);
 
       const oldAccount = await accountService
-        .findOne({ key: { _id: oldAccId } })
+        .findOne({
+          _id: oldAccId,
+          tenant_id: req.user?.tenant_id,
+        })
         .session(session || null);
 
       if (!oldAccount) customError('Old Account Not Found', 404);
 
-      await accountService.update(
-        oldAccId,
-        {
+      await accountService.update({
+        _id: oldAccId,
+        tenant_id: req.user?.tenant_id,
+
+        data: {
           available_balance: (
             Number(oldAccount?.available_balance || 0) +
             Number(findSingle.amount || 0)
           ).toFixed(2),
         },
         session,
-      );
+      });
 
       const commission = await agentCommissionService
         .findOne({
-          key: { _id: findSingle?.commission_id },
+          _id: findSingle?.commission_id,
+          tenant_id: req.user?.tenant_id,
         })
         .session(session || null);
 
       if (!commission) customError('Commission Not Found', 404);
 
-      await agentCommissionService.update(
-        `${commission?._id}`,
-        {
+      await agentCommissionService.update({
+        _id: commission?._id as Types.ObjectId,
+        tenant_id: req.user?.tenant_id,
+        data: {
           paid_amount: (
             Number(commission?.paid_amount || 0) -
             Number(findSingle?.amount || 0)
           ).toFixed(2),
         },
         session,
-      );
+      });
 
-      await agentPaymentService.deleteItem(_id as string).session(session);
+      await agentPaymentService
+        .deleteItem({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
       await accountTransactionService
-        .deleteItem(`${mainTx?._id}`)
+        .deleteItem({
+          _id: mainTx?._id as Types.ObjectId,
+          tenant_id: req.user?.tenant_id,
+        })
         .session(session);
     });
 
@@ -502,7 +543,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'DELETE',
       entity: 'Agent payment',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new Agent payment has been deleted agent_payment_id: ${_id}`,
     });
@@ -517,7 +558,9 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await agentPaymentService.findAll({}).select('voucher_no _id');
+    const data = await agentPaymentService
+      .findAll({ tenant_id: req.user?.tenant_id })
+      .select('voucher_no _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);

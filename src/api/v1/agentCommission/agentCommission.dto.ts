@@ -1,32 +1,33 @@
 import { Document, Types } from 'mongoose';
 
-export interface ICreateAgentCommission extends Document {
+type AgentCommissionStatus = 'PENDING' | 'APPROVED' | 'PAID';
+export interface IBaseAgentCommission {
   agent_id: Types.ObjectId;
   batch_id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
   total_students: number;
   eligible_students: number;
   total_amount: number;
   commission_rate: number;
   commission_amount: number;
   paid_amount: number;
-  status: 'PENDING' | 'APPROVED' | 'PAID';
+  status: AgentCommissionStatus;
 }
-export interface IAgentCommissionList {
+export interface ICreateAgentCommission
+  extends IBaseAgentCommission, Document {}
+export interface IAgentCommissionList extends Omit<
+  IBaseAgentCommission,
+  'paid_amount' | 'status'
+> {
   _id?: string | Types.ObjectId;
-  agent_id: string;
-  batch_id: string;
-  total_students: number;
-  eligible_students: number;
-  total_amount: number;
-  commission_rate: number;
-  commission_amount: number;
   paid_amount?: number;
-  status?: 'PENDING' | 'APPROVED' | 'PAID';
+  status?: AgentCommissionStatus;
 }
 
 export interface IAgentCommissionFindAllParams {
   search?: string;
   agent_id?: Types.ObjectId;
   batch_id?: Types.ObjectId;
-  status?: 'PENDING' | 'APPROVED' | 'PAID';
+  status?: AgentCommissionStatus;
+  tenant_id: Types.ObjectId;
 }

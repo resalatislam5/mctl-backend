@@ -6,6 +6,7 @@ import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
 import auditLogService from '../auditLog/auditLog.service';
 import { detectChanges } from '../../../utils/detectChanges';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -37,7 +38,9 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const data = await countryService.findOne({ key: { _id: _id as string } });
+    const data = await countryService.findOne({
+      key: { _id: convertObjectID(_id) },
+    });
     if (!data) {
       customError('Country not found', 404);
     }
@@ -57,7 +60,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Country',
-      entity_id: data?._id.toString() as string,
+      entity_id: data?._id,
       description: `A new country has been created country_id: ${data?._id.toString()}`,
     });
 
@@ -78,7 +81,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await countryService.findOne({
-      key: { _id: _id as string },
+      key: { _id: convertObjectID(_id as string) },
     });
     if (!findSingle) {
       return customError('Country not found', 404);
@@ -100,7 +103,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'UPDATE',
       entity: 'Country',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
       description: `A new country has been updated country_id: ${_id}`,
     });
@@ -121,7 +124,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await countryService.findOne({
-      key: { _id: _id as string },
+      key: { _id: convertObjectID(_id as string) },
     });
     if (!findSingle) {
       return customError('Country not found', 404);
@@ -132,7 +135,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'DELETE',
       entity: 'Country',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new country has been created country_id: ${_id}`,
     });

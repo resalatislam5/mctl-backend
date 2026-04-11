@@ -1,9 +1,9 @@
-import { PipelineStage } from 'mongoose';
+import { PipelineStage, Types } from 'mongoose';
 import { IPackageFindAllParams, IPackageList } from './package.dto';
 import Package from './package.model';
 
-const findAll = ({ search, status }: IPackageFindAllParams) => {
-  const query: any = {};
+const findAll = ({ search, status, tenant_id }: IPackageFindAllParams) => {
+  const query: any = { tenant_id };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
@@ -15,11 +15,7 @@ const findAll = ({ search, status }: IPackageFindAllParams) => {
   return Package.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IPackageList> }) => {
-  if (key?._id) {
-    return Package.findById(key._id);
-  }
-
+const findOne = (key: Partial<IPackageList>) => {
   return Package.findOne(key);
 };
 
@@ -31,8 +27,9 @@ const create = ({
   discount,
   additional_discount,
   status,
+  tenant_id,
 }: IPackageList) => {
-  const pkg = new Package({
+  const data = new Package({
     name,
     course_ids,
     total_price,
@@ -40,20 +37,38 @@ const create = ({
     discount,
     additional_discount,
     status,
+    tenant_id,
   });
-  return pkg.save();
+  return data.save();
 };
 
-const update = (_id: string, data: Partial<IPackageList>) => {
-  return Package.findByIdAndUpdate(_id, data, { new: true });
+const update = ({
+  _id,
+  data,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: Partial<IPackageList>;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Package.findOneAndUpdate({ _id, tenant_id }, data, {
+    returnDocument: 'after',
+    runValidators: true,
+  });
 };
 
-const deleteItem = (_id: string) => {
-  return Package.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Package.findByIdAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search, status }: IPackageFindAllParams) => {
-  const query: any = {};
+const count = ({ search, status, tenant_id }: IPackageFindAllParams) => {
+  const query: any = { tenant_id };
 
   // name filter
   if (status) {
@@ -74,6 +89,7 @@ const count = ({ search, status }: IPackageFindAllParams) => {
 const aggregate = (pipeline: PipelineStage[]) => {
   return Package.aggregate(pipeline);
 };
+
 export default {
   findAll,
   findOne,

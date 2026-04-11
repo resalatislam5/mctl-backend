@@ -15,6 +15,12 @@ const AgentPaymentSchema = new Schema<ICreateAgentPayment>(
       trim: true,
       schema: 'AgentCommission',
     },
+    tenant_id: {
+      type: Types.ObjectId,
+      required: true,
+      trim: true,
+      schema: 'Tenant',
+    },
     voucher_no: {
       type: String,
       required: true,

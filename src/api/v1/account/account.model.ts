@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { ICreateAccount } from './account.dto';
 
 const AccountSchema = new Schema<ICreateAccount>(
@@ -48,8 +48,13 @@ const AccountSchema = new Schema<ICreateAccount>(
       trim: true,
     },
     transfer_acc_id: {
-      type: Schema.Types.ObjectId,
+      type: Types.ObjectId,
       ref: 'Account',
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      ref: 'Tenant',
+      required: true,
     },
     charge_percent: {
       type: Number,

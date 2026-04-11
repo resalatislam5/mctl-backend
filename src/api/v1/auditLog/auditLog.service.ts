@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { ClientSession } from 'mongoose';
 import AuditLog from './auditLog.modal';
 import { formatDateRange } from '../../../utils/DataFormat';
+import { Types } from 'mongoose';
 
 export interface AuditParams {
   req: Request;
@@ -9,7 +10,7 @@ export interface AuditParams {
   action: 'LOGIN' | 'CREATE' | 'UPDATE' | 'DELETE';
   entity: string;
   description: string;
-  entity_id: string;
+  entity_id: Types.ObjectId;
   changes?: any;
 }
 
@@ -17,12 +18,14 @@ const findAll = ({
   from_date,
   to_date,
   user_id,
+  tenant_id,
 }: {
   from_date?: string;
   to_date?: string;
   user_id?: string;
+  tenant_id: Types.ObjectId;
 }) => {
-  const query: any = {};
+  const query: any = { tenant_id };
 
   // Date filter
   if (from_date || to_date) {
@@ -43,6 +46,7 @@ const create = async (
     const data = new AuditLog({
       user_id: user?._id,
       user_name: user?.name,
+      tenant_id: user?.tenant_id,
       action,
       entity,
       entity_id,
@@ -61,12 +65,14 @@ const count = ({
   from_date,
   to_date,
   user_id,
+  tenant_id,
 }: {
   from_date?: string;
   to_date?: string;
   user_id?: string;
+  tenant_id: Types.ObjectId;
 }) => {
-  const query: any = {};
+  const query: any = { tenant_id };
 
   if (from_date || to_date) {
     query.createdAt = formatDateRange(from_date, to_date);

@@ -3,8 +3,13 @@ import { IAccountFindAllParams, IAccountList } from './account.dto';
 import Account from './account.model';
 import { UpdateQuery } from 'mongoose';
 
-const findAll = ({ search, account_type, status }: IAccountFindAllParams) => {
-  const query: Record<string, unknown> = {};
+const findAll = ({
+  search,
+  account_type,
+  status,
+  tenant_id,
+}: IAccountFindAllParams) => {
+  const query: Record<string, unknown> = { tenant_id };
 
   // search filter
   if (search) {
@@ -26,11 +31,7 @@ const findAll = ({ search, account_type, status }: IAccountFindAllParams) => {
   return Account.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IAccountList> }) => {
-  if (key?._id) {
-    return Account.findById(key._id);
-  }
-
+const findOne = (key: Partial<IAccountList>) => {
   return Account.findOne(key);
 };
 
@@ -48,6 +49,7 @@ const create = (
     transfer_acc_id,
     charge_percent,
     status,
+    tenant_id,
   }: IAccountList,
   session?: ClientSession | null,
 ) => {
@@ -64,28 +66,41 @@ const create = (
     transfer_acc_id,
     charge_percent,
     status,
+    tenant_id,
   });
   return account.save({ ...(session && { session }) });
 };
 
-const update = (
-  _id: string | Types.ObjectId,
-  data: UpdateQuery<IAccountList>,
-  session?: ClientSession | null,
-) => {
-  return Account.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: string | Types.ObjectId;
+  data: UpdateQuery<IAccountList>;
+  session?: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Account.findByIdAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const deleteItem = (_id: string) => {
-  return Account.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Account.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search, status }: IAccountFindAllParams) => {
-  const query: Record<string, unknown> = {};
+const count = ({ search, status, tenant_id }: IAccountFindAllParams) => {
+  const query: Record<string, unknown> = { tenant_id };
 
   // search filter
   if (search) {

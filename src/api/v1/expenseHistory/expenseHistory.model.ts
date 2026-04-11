@@ -25,7 +25,12 @@ const ExpenseHistorySchema = new Schema<ICreateExpenseHistory>(
     acc_id: {
       type: Types.ObjectId,
       required: true,
-      schema: 'account',
+      ref: 'account',
+    },
+    tenant_id: {
+      type: Types.ObjectId,
+      required: true,
+      ref: 'tenant',
     },
     total_amount: {
       type: Number,

@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { NextFunction, Request, Response } from 'express';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { RequestWithUser } from '../../../types/commonTypes';
 import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
@@ -8,6 +8,7 @@ import { sendMail } from '../../../utils/sendMail';
 import auditLogService from '../auditLog/auditLog.service';
 import { ICreateUser } from './user.dto';
 import userService from './user.service';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (
   req: RequestWithUser,
@@ -19,7 +20,10 @@ const findAll = async (
   const skip = Number(req.query.skip || 0);
   const status = req.query.status?.toString() as 'ACTIVE' | 'INACTIVE';
 
-  const query: any = { is_owner: { $ne: true } };
+  const query: any = {
+    is_owner: { $ne: true },
+    tenant_id: convertObjectID(req.user.tenant_id),
+  };
 
   // search filter
   if (search) {
@@ -98,7 +102,10 @@ const findOne = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Invalid id', 400);
     }
 
-    const user = await userService.findOne({ _id });
+    const user = await userService.findOne({
+      _id,
+      tenant_id: req.user.tenant_id,
+    });
     res.json({ success: true, data: user });
   } catch (err) {
     next(err);
@@ -108,7 +115,9 @@ const findOne = async (req: Request, res: Response, next: NextFunction) => {
 const create = async (req: Request, res: Response, next: NextFunction) => {
   const { name, email, password, role_id, status } = req.body as ICreateUser;
 
-  const findUser = await userService.findOne({ email });
+  const findUser = await userService.findWithoutTenantId({
+    email,
+  });
   if (findUser) customError('User already exit', 409);
 
   try {
@@ -118,6 +127,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       role_id,
       password,
       status,
+      tenant_id: req.user.tenant_id,
     });
 
     await auditLogService.create({
@@ -125,7 +135,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'User',
-      entity_id: data._id.toString(),
+      entity_id: data._id,
       changes: { name: data.name, email: data.email },
       description: `A new user has been created user_id: ${data?._id}`,
     });
@@ -205,14 +215,30 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     if (!_id || Array.isArray(_id) || !mongoose.Types.ObjectId.isValid(_id)) {
       return customError('Invalid id', 400);
     }
-    const findUser = await userService.findOne({ email });
+
+    const existingUser = await userService.findWithoutTenantId({
+      email,
+      _id: { $ne: convertObjectID(_id) },
+    });
+    console.log(existingUser);
+
+    if (existingUser) {
+      return customError('Email already exists', 400);
+    }
+
+    const findUser = await userService.findWithoutTenantId({
+      email,
+    });
+
     if (!findUser) customError('User Not Found', 404);
+
     let updateUser = {
       name,
       email,
       role_id,
       password,
       status,
+      tenant_id: req.user.tenant_id,
     };
     if (password) {
       const salt = await bcrypt.genSalt(10);
@@ -233,7 +259,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'UPDATE',
       entity: 'User',
-      entity_id: _id,
+      entity_id: findUser?._id as Types.ObjectId,
       changes: compareChange,
       description: `A new user has been updated user_id: ${data?._id}`,
     });
@@ -313,22 +339,25 @@ const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Invalid id', 400);
     }
 
-    const findUser = await userService.findOne({ _id });
+    const findUser = await userService.findOne({
+      _id,
+      tenant_id: req.user.tenant_id,
+    });
     if (findUser?.is_owner)
       customError('Owner account can not be deleted', 403);
 
     if (!findUser) customError('User Not Found', 404);
 
-    await userService.deleteOne(_id);
+    await userService.deleteOne(_id, req.user.tenant_id);
 
     await auditLogService.create({
       req,
       user: req.user,
       action: 'DELETE',
       entity: 'User',
-      entity_id: _id,
+      entity_id: findUser?._id as Types.ObjectId,
       changes: findUser,
-      description: `A new user has been deleted user_id: ${_id}`,
+      description: `A new user has been deleted user_id: ${findUser?._id?.toString()}`,
     });
 
     res.status(200).json({ success: true, message: 'Delete Successfully' });

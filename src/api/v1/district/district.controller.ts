@@ -92,7 +92,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'District',
-      entity_id: data?._id.toString() as string,
+      entity_id: data?._id,
       description: `A new district has been created district_id: ${data?._id.toString()}`,
     });
 
@@ -135,7 +135,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'District',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
       description: `A new district has been updated district_id: ${_id}`,
     });
@@ -168,7 +168,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'DELETE',
       entity: 'District',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new district has been deleted district_id: ${_id}`,
     });

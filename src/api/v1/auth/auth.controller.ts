@@ -6,11 +6,12 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auditLogService from '../auditLog/auditLog.service';
 import moduleService from '../module/module.service';
+import { Types } from 'mongoose';
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body as IAuth;
   try {
-    const user = await userService.findOne({ email });
+    const user = await userService.findWithoutTenantId({ email });
     if (!user) customError('Wrong credential', 404);
     if (user?.status === 'INACTIVE')
       customError('Your account is deactivate', 403);
@@ -32,7 +33,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       user: user,
       action: 'LOGIN',
       entity: 'Enrollment',
-      entity_id: user?._id?.toString() as string,
+      entity_id: user?._id as Types.ObjectId,
       description: `User login detected. User ID: ${user?._id?.toString()}`,
     });
 
@@ -46,7 +47,10 @@ const check = async (req: Request, res: Response) => {
   const { _id, name, email, permissions, is_owner } = req.user;
 
   if (is_owner) {
-    const module = await moduleService.findAll({ status: 'ACTIVE' });
+    const module = await moduleService.findAll({
+      status: 'ACTIVE',
+      tenant_id: req.user?.tenant_id,
+    });
     const permissions = module.map((m) => {
       return {
         name: m.name,

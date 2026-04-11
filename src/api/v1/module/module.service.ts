@@ -1,7 +1,14 @@
+import { Types } from 'mongoose';
 import Module from './module.model';
 
-const findAll = ({ status }: { status: string }) => {
-  let query: any = {};
+const findAll = ({
+  status,
+  tenant_id,
+}: {
+  status: string;
+  tenant_id: Types.ObjectId;
+}) => {
+  let query: any = { tenant_id };
   if (status) {
     query.status = status;
   }

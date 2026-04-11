@@ -1,26 +1,23 @@
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
+import { IStatus } from '../../../types/commonTypes';
 
-export interface ICreatePackage extends Document {
+export interface IBasePackage {
   name: string;
-  course_ids: mongoose.Types.ObjectId[];
+  course_ids: Types.ObjectId[];
   total_price: number;
   net_price: number;
   discount: number;
   additional_discount: number;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
+  tenant_id: Types.ObjectId;
 }
-export interface IPackageList {
-  _id?: string;
-  name: string;
-  course_ids: string[];
-  total_price: number;
-  net_price: number;
-  discount: number;
-  additional_discount: number;
-  status: 'ACTIVE' | 'INACTIVE';
+export interface ICreatePackage extends IBasePackage, Document {}
+export interface IPackageList extends IBasePackage {
+  _id?: Types.ObjectId;
 }
 
 export interface IPackageFindAllParams {
   search?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: IStatus;
+  tenant_id: Types.ObjectId;
 }

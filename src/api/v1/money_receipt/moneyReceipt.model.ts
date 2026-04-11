@@ -31,6 +31,12 @@ const MoneyReceiptSchema = new Schema<ICreateMoneyReceipt>(
       required: true,
       schema: 'enrollment',
     },
+    tenant_id: {
+      type: Types.ObjectId,
+      trim: true,
+      required: true,
+      schema: 'tenant',
+    },
     amount: {
       type: Number,
       trim: true,

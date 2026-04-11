@@ -9,9 +9,14 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [data, total] = await Promise.all([
       auditLogService
-        .findAll({ from_date, to_date, user_id })
+        .findAll({ from_date, to_date, user_id, tenant_id: req.user.tenant_id })
         .sort({ createdAt: -1 }),
-      auditLogService.count({ from_date, to_date, user_id }),
+      auditLogService.count({
+        from_date,
+        to_date,
+        user_id,
+        tenant_id: req.user.tenant_id,
+      }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {

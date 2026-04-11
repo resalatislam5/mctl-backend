@@ -8,6 +8,7 @@ import { IPackageList } from './package.dto';
 import auditLogService from '../auditLog/auditLog.service';
 import { detectChanges } from '../../../utils/detectChanges';
 import mongoose, { Mongoose } from 'mongoose';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const search = req.query.search?.toString() || '';
@@ -17,11 +18,11 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [data, total] = await Promise.all([
       packageService
-        .findAll({ search, status })
+        .findAll({ search, status, tenant_id: req.user?.tenant_id })
         .limit(limit)
         .skip(skip)
         .sort({ createdAt: -1 }),
-      packageService.count({ search, status }),
+      packageService.count({ search, status, tenant_id: req.user?.tenant_id }),
     ]);
     res.json({ success: true, total, data });
   } catch (err) {
@@ -38,9 +39,13 @@ const findSingle = async (
   try {
     checkMongooseId(_id);
 
-    const objId = new mongoose.Types.ObjectId(_id);
     const data = await packageService.aggregate([
-      { $match: { _id: objId } },
+      {
+        $match: {
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        },
+      },
 
       {
         $addFields: {
@@ -106,6 +111,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       course_ids,
       additional_discount,
       status,
+      tenant_id: req.user?.tenant_id,
     });
 
     await auditLogService.create({
@@ -113,7 +119,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Package',
-      entity_id: data?._id?.toString() as string,
+      entity_id: data?._id,
       description: `A new package has been created package_id: ${data?._id?.toString()}`,
     });
 
@@ -141,18 +147,23 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await packageService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Package not found', 404);
     }
-    const data = await packageService.update(_id as string, {
-      name,
-      total_price,
-      net_price,
-      discount,
-      additional_discount,
-      status,
+    const data = await packageService.update({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      data: {
+        name,
+        total_price,
+        net_price,
+        discount,
+        additional_discount,
+        status,
+      },
     });
 
     const compareChange = detectChanges(
@@ -163,11 +174,11 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     await auditLogService.create({
       req,
       user: req.user,
-      action: 'DELETE',
+      action: 'UPDATE',
       entity: 'Package',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: compareChange,
-      description: `A new package has been deleted package_id: ${_id}`,
+      description: `A new package has been updated package_id: ${_id}`,
     });
 
     res.json({
@@ -187,20 +198,24 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await packageService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Package not found', 404);
     }
 
-    await packageService.deleteItem(_id as string);
+    await packageService.deleteItem({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
 
     await auditLogService.create({
       req,
       user: req.user,
       action: 'DELETE',
       entity: 'Package',
-      entity_id: _id as string,
+      entity_id: findSingle._id,
       changes: findSingle,
       description: `A new package has been deleted package_id: ${_id}`,
     });
@@ -217,7 +232,7 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await packageService
-      .findAll({ status: 'ACTIVE' })
+      .findAll({ status: 'ACTIVE', tenant_id: req.user?.tenant_id })
       .select('name net_price _id');
     res.json({ success: true, data });
   } catch (err) {

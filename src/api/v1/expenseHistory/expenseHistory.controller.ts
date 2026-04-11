@@ -11,13 +11,22 @@ import { convertObjectID } from '../../../utils/ConvertObjectID';
 import { withTransaction } from '../../../utils/withTransaction';
 import accountService from '../account/account.service';
 import accountTransactionService from '../accountTransaction/accountTransaction.service';
+import { Types } from 'mongoose';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
+  const query: any = {};
   const search = req.query.search?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
+  if (search) {
+    query.$or = [{ voucher_no: { $regex: search, $options: 'i' } }];
+  }
+
   try {
     const data = await expenseHistoryService.aggregate([
+      {
+        $match: { tenant_id: req.user?.tenant_id },
+      },
       {
         $lookup: {
           from: 'accounts',
@@ -82,7 +91,7 @@ const findSingle = async (
 
     const data = await expenseHistoryService.aggregate([
       {
-        $match: { _id: convertObjectID(_id) },
+        $match: { _id: convertObjectID(_id), tenant_id: req.user?.tenant_id },
       },
       {
         $lookup: {
@@ -132,19 +141,27 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const data = await withTransaction(async (session) => {
-      const voucher_no = await generateCode('expense_history', 'EXP', session);
-      const account = await accountService.findOne({ key: { _id: acc_id } });
+      const voucher_no = await generateCode(
+        'expense_history',
+        'EXP',
+        session,
+        req.user?.tenant_id,
+      );
+      const account = await accountService
+        .findOne({ _id: acc_id, tenant_id: req.user?.tenant_id })
+        .session(session);
       if (!account) {
         customError('Account not found', 404);
       }
-      await accountService.update(
-        acc_id,
-        {
+      await accountService.update({
+        _id: acc_id,
+        tenant_id: req.user?.tenant_id,
+        data: {
           available_balance:
             Number(account?.available_balance || 0) - Number(total_amount || 0),
         },
         session,
-      );
+      });
 
       const data = await expenseHistoryService.create({
         acc_id,
@@ -154,17 +171,19 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         note,
         total_amount,
         voucher_no,
+        tenant_id: req.user?.tenant_id,
       });
 
       await accountTransactionService.create(
         {
-          account_id: acc_id,
+          account_id: convertObjectID(acc_id),
           reference_type: 'ExpenseHistory',
           reference_id: data?._id,
           voucher_no: data?.voucher_no,
           amount: total_amount,
           type: 'DEBIT',
           description: `Paid ${total_amount} for multiple expenses via ${account_type}`,
+          tenant_id: req.user?.tenant_id,
         },
         session,
       );
@@ -177,7 +196,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       user: req.user,
       action: 'CREATE',
       entity: 'Expense',
-      entity_id: data?._id?.toString() as string,
+      entity_id: data?._id,
       description: `A new Expense has been created expense_id: ${data?._id?.toString()}`,
     });
 
@@ -200,15 +219,17 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
   try {
     checkMongooseId(_id as string);
     const findSingle = await expenseHistoryService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
+
     if (!findSingle) {
       return customError('Expense not found', 404);
     }
 
     const data = await withTransaction(async (session) => {
       const account = await accountService
-        .findOne({ key: { _id: acc_id } })
+        .findOne({ _id: acc_id, tenant_id: req.user?.tenant_id })
         .session(session);
       if (!account) {
         customError('Account not found', 404);
@@ -217,19 +238,21 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       const diff =
         Number(findSingle.total_amount || 0) - Number(total_amount || 0);
 
-      await accountService.update(
-        acc_id,
-        {
+      await accountService.update({
+        _id: acc_id,
+        tenant_id: req.user?.tenant_id,
+        data: {
           available_balance: (
             Number(account?.available_balance || 0) + diff
           ).toFixed(2),
         },
         session,
-      );
+      });
 
-      const data = await expenseHistoryService.update(
-        _id as string,
-        {
+      const data = await expenseHistoryService.update({
+        _id: convertObjectID(_id as string),
+        tenant_id: req.user?.tenant_id,
+        data: {
           acc_id,
           account_type,
           date,
@@ -238,17 +261,19 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           total_amount,
         },
         session,
-      );
+      });
 
       const accountTransaction = await accountTransactionService
         .findOne({
-          key: { reference_id: findSingle._id },
+          reference_id: findSingle._id,
+          tenant_id: req.user?.tenant_id,
         })
         .session(session);
 
-      await accountTransactionService.update(
-        `${accountTransaction?._id}`,
-        {
+      await accountTransactionService.update({
+        _id: accountTransaction?._id as Types.ObjectId,
+        tenant_id: req.user?.tenant_id,
+        data: {
           account_id: acc_id,
           money_receipt_id: findSingle?._id.toString(),
           amount: total_amount,
@@ -256,7 +281,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           description: `Paid ${total_amount} for multiple expenses via ${account_type}`,
         },
         session,
-      );
+      });
 
       const compareChange = detectChanges(
         findSingle.toObject(),
@@ -268,7 +293,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         user: req.user,
         action: 'UPDATE',
         entity: 'Expense',
-        entity_id: _id as string,
+        entity_id: findSingle._id,
         changes: compareChange,
         description: `A new Expense has been deleted expense_id: ${_id}`,
       });
@@ -292,45 +317,56 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
     checkMongooseId(_id as string);
 
     const findSingle = await expenseHistoryService.findOne({
-      key: { _id: _id as string },
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
     });
     if (!findSingle) {
       return customError('Expense not found', 404);
     }
     await withTransaction(async (session) => {
       const account = await accountService
-        .findOne({ key: { _id: `${findSingle?.acc_id}` } })
+        .findOne({ _id: findSingle?.acc_id, tenant_id: req.user?.tenant_id })
         .session(session);
 
-      await accountService.update(
-        `${findSingle.acc_id}`,
-        {
+      await accountService.update({
+        _id: findSingle.acc_id,
+        tenant_id: req.user?.tenant_id,
+        data: {
           available_balance: (
             Number(account?.available_balance || 0) +
             Number(findSingle.total_amount || 0)
           ).toFixed(2),
         },
         session,
-      );
+      });
 
       const accountTransaction = await accountTransactionService.findOne({
-        key: { reference_id: findSingle._id },
+        reference_id: findSingle._id,
+        tenant_id: req.user?.tenant_id,
       });
 
       if (!accountTransaction) {
         customError('Transaction not found', 404);
       }
       await accountTransactionService
-        .deleteItem(`${accountTransaction?._id}`)
+        .deleteItem({
+          _id: accountTransaction?._id as Types.ObjectId,
+          tenant_id: req.user?.tenant_id,
+        })
         .session(session);
 
-      await expenseHistoryService.deleteItem(_id as string).session(session);
+      await expenseHistoryService
+        .deleteItem({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
       await auditLogService.create({
         req,
         user: req.user,
         action: 'DELETE',
         entity: 'Expense',
-        entity_id: _id as string,
+        entity_id: findSingle._id,
         changes: findSingle,
         description: `A new Expense has been deleted expense_id: ${_id}`,
       });
@@ -348,7 +384,9 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await expenseHistoryService.findAll({}).select('name _id');
+    const data = await expenseHistoryService
+      .findAll({ tenant_id: req.user?.tenant_id })
+      .select('name _id');
     res.json({ success: true, data });
   } catch (err) {
     next(err);

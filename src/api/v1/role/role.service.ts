@@ -1,9 +1,9 @@
-import { PipelineStage } from 'mongoose';
-import { ICreateRole, IRoleFindAllParams, IRoleList } from './role.dto';
+import { PipelineStage, Types } from 'mongoose';
+import { IRoleFindAllParams, IRoleList } from './role.dto';
 import Role from './role.model';
 
-const findAll = ({ search, status }: IRoleFindAllParams) => {
-  const query: any = {};
+const findAll = ({ search, status, tenant_id }: IRoleFindAllParams) => {
+  const query: any = { tenant_id };
 
   // search filter
   if (search) {
@@ -16,28 +16,41 @@ const findAll = ({ search, status }: IRoleFindAllParams) => {
 };
 
 const findOne = (key: Partial<IRoleList>) => {
-  if (key?._id) {
-    return Role.findById(key._id);
-  }
-
   return Role.findOne(key);
 };
 
-const create = ({ name, permissions, status }: IRoleList) => {
-  const role = new Role({ name, permissions, status });
+const create = ({ name, permissions, status, tenant_id }: IRoleList) => {
+  const role = new Role({ name, permissions, status, tenant_id });
   return role.save();
 };
 
-const update = (_id: string, data: Partial<IRoleList>) => {
-  return Role.findByIdAndUpdate(_id, data, { new: true });
+const update = ({
+  _id,
+  data,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: Partial<IRoleList>;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Role.findOneAndUpdate({ _id, tenant_id }, data, { new: true });
 };
 
-const deleteItem = (_id: string) => {
-  return Role.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Role.findOneAndDelete(
+    { _id, tenant_id },
+    { returnDocument: 'after', runValidators: true },
+  );
 };
 
-const count = ({ search, status }: IRoleFindAllParams) => {
-  const query: any = {};
+const count = ({ search, status, tenant_id }: IRoleFindAllParams) => {
+  const query: any = { tenant_id };
 
   // module_id filter
   if (status) {

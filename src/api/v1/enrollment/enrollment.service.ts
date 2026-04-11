@@ -1,4 +1,4 @@
-import { ClientSession, PipelineStage } from 'mongoose';
+import { ClientSession, PipelineStage, Types } from 'mongoose';
 import { IEnrollmentFindAllParams, IEnrollmentList } from './enrollment.dto';
 import { Enrollment } from './enrollment.model';
 
@@ -8,8 +8,9 @@ const findAll = ({
   installment_date,
   batch_id,
   agent_id,
+  tenant_id,
 }: IEnrollmentFindAllParams) => {
-  const query: any = {};
+  const query: any = { tenant_id };
 
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
@@ -30,7 +31,7 @@ const findAll = ({
   return Enrollment.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IEnrollmentList> }) => {
+const findOne = (key: Partial<IEnrollmentList>) => {
   if (key?._id) {
     return Enrollment.findById(key._id);
   }
@@ -57,8 +58,9 @@ const create = ({
   agent_id,
   installment_type,
   meal_accommodation,
+  tenant_id,
 }: IEnrollmentList) => {
-  const pkg = new Enrollment({
+  const data = new Enrollment({
     additional_discount,
     admission_date,
     batch_id,
@@ -77,36 +79,64 @@ const create = ({
     agent_id,
     installment_type,
     meal_accommodation,
+    tenant_id,
   });
-  return pkg.save();
+  return data.save();
 };
 
-const update = (
-  _id: string,
-  data: Partial<IEnrollmentList>,
-  session?: ClientSession | null,
-) => {
-  return Enrollment.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  tenant_id,
+  data,
+  session,
+}: {
+  tenant_id: Types.ObjectId;
+  _id: Types.ObjectId;
+  data: Partial<IEnrollmentList>;
+  session?: ClientSession | null;
+}) => {
+  return Enrollment.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const deleteItem = (_id: string) => {
-  return Enrollment.findByIdAndDelete(_id);
+const deleteItem = ({
+  _id,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  tenant_id: Types.ObjectId;
+}) => {
+  return Enrollment.findOneAndDelete({ _id, tenant_id });
 };
 
-const count = ({ search }: IEnrollmentFindAllParams) => {
-  const query: any = {};
+const count = ({
+  search,
+  student_id,
+  agent_id,
+  batch_id,
+  installment_date,
+  tenant_id,
+}: IEnrollmentFindAllParams) => {
+  const query: any = { tenant_id };
 
-  // name filter
-
-  // search filter
   if (search) {
     query.$or = [{ name: { $regex: search, $options: 'i' } }];
   }
-
+  if (student_id) {
+    query.student_id = student_id;
+  }
+  if (agent_id) {
+    query.agent_id = agent_id;
+  }
+  if (batch_id) {
+    query.batch_id = batch_id;
+  }
+  if (installment_date) {
+    query.installment_date = installment_date;
+  }
   return Enrollment.countDocuments(query);
 };
 

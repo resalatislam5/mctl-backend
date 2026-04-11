@@ -1,7 +1,7 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 
 export type CountryType = {
-  _id: string;
+  _id: Types.ObjectId;
   name: string;
   code: string;
   status: 'ACTIVE' | 'INACTIVE';

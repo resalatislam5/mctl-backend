@@ -1,4 +1,4 @@
-import { ClientSession, PipelineStage, UpdateQuery } from 'mongoose';
+import { ClientSession, PipelineStage, Types, UpdateQuery } from 'mongoose';
 import {
   IAgentCommissionFindAllParams,
   IAgentCommissionList,
@@ -11,8 +11,9 @@ const findAll = ({
   status,
   agent_id,
   batch_id,
+  tenant_id,
 }: IAgentCommissionFindAllParams) => {
-  const query: any = {};
+  const query: any = { tenant_id };
   if (agent_id) {
     query.agent_id = agent_id;
   }
@@ -34,11 +35,7 @@ const findAll = ({
   return AgentCommission.find(query);
 };
 
-const findOne = ({ key }: { key?: Partial<IAgentCommissionList> }) => {
-  if (key?._id) {
-    return AgentCommission.findById(key._id);
-  }
-
+const findOne = (key: Partial<IAgentCommissionList>) => {
   return AgentCommission.findOne(key);
 };
 
@@ -52,6 +49,7 @@ const create = ({
   total_amount,
   total_students,
   status,
+  tenant_id,
 }: IAgentCommissionList) => {
   const data = new AgentCommission({
     agent_id,
@@ -62,26 +60,36 @@ const create = ({
     paid_amount,
     total_amount,
     total_students,
-
+    tenant_id,
     status,
   });
   return data.save();
 };
 
-const update = (
-  _id: string,
-  data: UpdateQuery<IAgentCommissionList>,
-  session?: ClientSession | null,
-) => {
-  return AgentCommission.findByIdAndUpdate(_id, data, {
+const update = ({
+  _id,
+  data,
+  session,
+  tenant_id,
+}: {
+  _id: Types.ObjectId;
+  data: UpdateQuery<IAgentCommissionList>;
+  session?: ClientSession | null;
+  tenant_id: Types.ObjectId;
+}) => {
+  return AgentCommission.findOneAndUpdate({ _id, tenant_id }, data, {
     returnDocument: 'after',
     runValidators: true,
     ...(session && { session }),
   });
 };
 
-const count = ({ search, status }: IAgentCommissionFindAllParams) => {
-  const query: any = {};
+const count = ({
+  search,
+  status,
+  tenant_id,
+}: IAgentCommissionFindAllParams) => {
+  const query: any = { tenant_id };
 
   // name filter
   if (status) {
