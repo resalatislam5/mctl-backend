@@ -122,8 +122,9 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
           (Number(e.total_paid || 0) /
             (Number(e.total_amount || 0) - Number(e.meal_accommodation || 0))) *
           100;
-        return percent >= Number(agent.min_limit || 0);
+        return percent >= Number(agent.min_payment_percent || 0);
       });
+
       const total_students = enrollments.length;
       const eligible_students = eligible.length;
 

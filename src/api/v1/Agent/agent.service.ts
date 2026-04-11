@@ -35,7 +35,7 @@ const create = async ({
   tenant_id,
 }: IAgentList) => {
   const oldAgent = await Agent.findOne({ email, tenant_id });
-  if (!oldAgent) customError('Agent with this email already exists', 400);
+  if (oldAgent) customError('Agent with this email already exists', 400);
 
   const agent = new Agent({
     name,
