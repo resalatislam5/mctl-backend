@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import auditLogService from '../auditLog/auditLog.service';
 import moduleService from '../module/module.service';
 import { Types } from 'mongoose';
+import appConfigService from '../appConfig/appConfig.service';
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body as IAuth;
@@ -46,6 +47,10 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 const check = async (req: Request, res: Response) => {
   const { _id, name, email, permissions, is_owner } = req.user;
 
+  const appConfig = await appConfigService.findOne({
+    tenant_id: req.user?.tenant_id,
+  });
+
   if (is_owner) {
     const module = await moduleService.findAll({
       status: 'ACTIVE',
@@ -61,10 +66,22 @@ const check = async (req: Request, res: Response) => {
       };
     });
 
-    const result = { _id, name, email, permissions: permissions };
+    const result = {
+      _id,
+      name,
+      email,
+      ...appConfig?.toObject(),
+      permissions: permissions,
+    };
     return res.status(200).json({ success: true, data: result });
   }
-  const result = { _id, name, email, permissions };
+  const result = {
+    _id,
+    name,
+    email,
+    ...appConfig?.toObject(),
+    permissions,
+  };
   res.status(200).json({ success: true, data: result });
 };
 export default { login, check };

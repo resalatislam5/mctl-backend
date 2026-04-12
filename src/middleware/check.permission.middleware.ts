@@ -25,6 +25,7 @@ export type permissionTags =
   | 'AGENT_COMMISSION'
   | 'ACCOUNT_LEDGER'
   | 'AGENT_PAYMENT'
+  | 'APP_CONFIG'
   | 'BALANCE_TRANSFER';
 
 export const checkPermissionMiddleware = (

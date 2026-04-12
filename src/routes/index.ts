@@ -24,6 +24,7 @@ import roleRoutes from './roleRoutes';
 import studentRoutes from './studentRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
+import appConfigRoutes from './appConfigRoutes';
 
 const router: Router = Router();
 router.use('/v1/config/user', userRoutes);
@@ -34,6 +35,7 @@ router.use('/v1/config/upazila', upazilaRoutes);
 router.use('/v1/config/module', moduleRoutes);
 router.use('/v1/config/batch', batchRoutes);
 router.use('/v1/config/course', courseRoutes);
+router.use('/v1/config/app-config', appConfigRoutes);
 router.use('/v1/agent', agentRoutes);
 router.use('/v1/agent-commission', agentCommissionRoutes);
 router.use('/v1/agent-payment', agentPaymentRoutes);

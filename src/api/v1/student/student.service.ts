@@ -24,10 +24,6 @@ const findAll = ({
 };
 
 const findOne = (key: Partial<IStudentList>) => {
-  // if (key?._id) {
-  //   return Student.findById(key._id);
-  // }
-
   return Student.findOne(key);
 };
 
