@@ -10,6 +10,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const account_id = req.query.account_id?.toString() || '';
   const from_date = req.query.from_date?.toString() || '';
   const to_date = req.query.to_date?.toString() || '';
+  const is_balance_transfer = req.query.is_balance_transfer?.toString() || '';
 
   if (account_id) {
     query.account_id = convertObjectID(account_id);
@@ -20,6 +21,13 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   }
   if (to_date) {
     query.to_date = to_date;
+  }
+
+  if (is_balance_transfer === 'true') {
+    query.is_balance_transfer = 'true';
+  }
+  if (is_balance_transfer === 'false') {
+    query.is_balance_transfer = 'false';
   }
 
   try {

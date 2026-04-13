@@ -26,6 +26,8 @@ const update = (
     address,
     phone,
     phone_2,
+    short_company_name,
+    enrollment_color,
   }: IAppConfigList,
   session?: ClientSession | null,
 ) => {
@@ -43,6 +45,8 @@ const update = (
         ...(address && { address }),
         ...(phone && { phone }),
         ...(phone_2 && { phone_2 }),
+        ...(short_company_name && { short_company_name }),
+        ...(enrollment_color && { enrollment_color }),
       },
     },
     {

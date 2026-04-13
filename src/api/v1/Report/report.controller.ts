@@ -18,6 +18,7 @@ const studentLedger = async (
         $match: {
           batch_id: convertObjectID(batch_id),
           tenant_id: req.user?.tenant_id,
+          status: 'APPROVED',
         },
       },
       {
@@ -276,6 +277,7 @@ const upcomingInstallments = async (
         },
       },
       tenant_id: req.user?.tenant_id,
+      status: 'APPROVED',
     };
 
     const data = await enrollmentService.aggregate([

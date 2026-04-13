@@ -11,6 +11,7 @@ import { withTransaction } from '../../../utils/withTransaction';
 import accountService from '../account/account.service';
 import { generateCode } from '../counter/generateCode';
 import { convertObjectID } from '../../../utils/ConvertObjectID';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const query: any = { tenant_id: req.user?.tenant_id };
@@ -194,6 +195,34 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         },
         session,
       );
+      await accountTransactionService.create(
+        {
+          type: 'DEBIT',
+          amount,
+          account_id: from_acc_id,
+          voucher_no,
+          reference_type: 'BalanceTransfer',
+          tenant_id: req.user?.tenant_id,
+          is_balance_transfer: true,
+          reference_id: data?._id,
+          description: `Balance transfer from ${from_acc?.name} to ${to_acc?.name}`,
+        },
+        session,
+      );
+      await accountTransactionService.create(
+        {
+          type: 'CREDIT',
+          amount,
+          account_id: to_acc_id,
+          voucher_no,
+          tenant_id: req.user?.tenant_id,
+          reference_type: 'BalanceTransfer',
+          is_balance_transfer: true,
+          reference_id: data?._id,
+          description: `Balance transfer from ${from_acc?.name} to ${to_acc?.name}`,
+        },
+        session,
+      );
 
       await auditLogService.create({
         req,
@@ -233,6 +262,22 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     if (!findSingle) {
       return customError('Balance transfer not found', 404);
     }
+
+    const from_acc_transaction = await accountTransactionService.findOne({
+      reference_id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      type: 'DEBIT',
+    });
+    const to_acc_transaction = await accountTransactionService.findOne({
+      reference_id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      type: 'CREDIT',
+    });
+
+    if (!from_acc_transaction)
+      customError('From Account Transaction Not Found', 404);
+    if (!to_acc_transaction)
+      customError('To Account Transaction Not Found', 404);
 
     const data = withTransaction(async (session) => {
       const from_acc = await accountService.findOne({
@@ -289,6 +334,32 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         data?.toObject(),
       );
 
+      await accountTransactionService.update({
+        _id: convertObjectID(from_acc_transaction?._id),
+        tenant_id: req.user?.tenant_id,
+        data: {
+          type: 'DEBIT',
+          amount,
+          account_id: from_acc_id,
+          description: `Balance transfer from ${from_acc?.name} to ${to_acc?.name}`,
+        },
+        session,
+      });
+
+      await accountTransactionService.update({
+        _id: convertObjectID(to_acc_transaction?._id),
+        tenant_id: req.user?.tenant_id,
+
+        data: {
+          type: 'CREDIT',
+          amount,
+          account_id: to_acc_id,
+          reference_id: data?._id,
+          description: `Balance transfer from ${from_acc?.name} to ${to_acc?.name}`,
+        },
+        session,
+      });
+
       await auditLogService.create({
         req,
         user: req.user,
@@ -298,6 +369,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         changes: compareChange,
         description: `A new balance transfer has been updated balance_transfer_id: ${_id}`,
       });
+
       return data;
     });
 
@@ -316,17 +388,52 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     checkMongooseId(_id as string);
-
-    const findSingle = await balanceTransferService.findOne({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-    });
-
-    if (!findSingle) {
-      return customError('Balance transfer not found', 404);
-    }
-    const { from_acc_id, to_acc_id, amount } = findSingle;
     await withTransaction(async (session) => {
+      const from_acc_transaction = await accountTransactionService
+        .findOne({
+          reference_id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+          type: 'DEBIT',
+        })
+        .session(session);
+      const to_acc_transaction = await accountTransactionService
+        .findOne({
+          reference_id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+          type: 'CREDIT',
+        })
+        .session(session);
+
+      if (!from_acc_transaction)
+        customError('From Account Transaction Not Found', 404);
+      if (!to_acc_transaction)
+        customError('To Account Transaction Not Found', 404);
+
+      await accountTransactionService
+        .deleteItem({
+          _id: convertObjectID(from_acc_transaction?._id),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
+      await accountTransactionService
+        .deleteItem({
+          _id: convertObjectID(to_acc_transaction?._id),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
+
+      const findSingle = await balanceTransferService
+        .findOne({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
+
+      if (!findSingle) {
+        return customError('Balance transfer not found', 404);
+      }
+      const { from_acc_id, to_acc_id, amount } = findSingle;
+
       const from_acc = await accountService.findOne({
         _id: `${from_acc_id}`,
         tenant_id: req.user?.tenant_id,
@@ -362,20 +469,25 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
         },
         session,
       });
-    });
-    await balanceTransferService.deleteItem({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-    });
+      await balanceTransferService
+        .deleteItem({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'DELETE',
-      entity: 'balance_transfer',
-      entity_id: findSingle._id,
-      changes: findSingle,
-      description: `A new balance transfer has been deleted balance_transfer_id: ${_id}`,
+      await auditLogService.create(
+        {
+          req,
+          user: req.user,
+          action: 'DELETE',
+          entity: 'balance_transfer',
+          entity_id: findSingle._id,
+          changes: findSingle,
+          description: `A new balance transfer has been deleted balance_transfer_id: ${_id}`,
+        },
+        session,
+      );
     });
 
     res.json({

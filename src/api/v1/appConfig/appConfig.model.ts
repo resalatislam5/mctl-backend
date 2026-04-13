@@ -43,6 +43,16 @@ const AppConfigSchema = new Schema<ICreateAppConfig>(
       trim: true,
       default: null,
     },
+    short_company_name: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    enrollment_color: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     favicon: {
       type: String,
       trim: true,

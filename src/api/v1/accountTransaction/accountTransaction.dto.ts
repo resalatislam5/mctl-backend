@@ -7,7 +7,8 @@ export interface IBaseAccountTransaction {
     | 'Agent'
     | 'ExpenseHistory'
     | 'Account'
-    | 'AgentPayment';
+    | 'AgentPayment'
+    | 'BalanceTransfer';
   reference_id?: Types.ObjectId;
   tenant_id: Types.ObjectId;
   type: 'CREDIT' | 'DEBIT';
@@ -15,6 +16,7 @@ export interface IBaseAccountTransaction {
   voucher_no: string;
   description: string;
   date: Date;
+  is_balance_transfer?: boolean;
 }
 export interface ICreateAccountTransaction
   extends IBaseAccountTransaction, Document {}
@@ -32,4 +34,5 @@ export interface IAccountTransactionFindAllParams {
   tenant_id: Types.ObjectId;
   from_date?: string;
   to_date?: string;
+  is_balance_transfer?: string;
 }

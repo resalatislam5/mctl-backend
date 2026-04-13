@@ -21,8 +21,16 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const update = async (req: Request, res: Response, next: NextFunction) => {
-  const { company_name, domain_name, support_email, address, phone, phone_2 } =
-    req.body as IAppConfigList;
+  const {
+    company_name,
+    domain_name,
+    support_email,
+    address,
+    phone,
+    phone_2,
+    enrollment_color,
+    short_company_name,
+  } = req.body as IAppConfigList;
 
   const findSingle = await appConfigService.findOne({
     tenant_id: req.user?.tenant_id,
@@ -96,6 +104,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           address,
           phone,
           phone_2,
+          short_company_name,
+          enrollment_color,
         },
         session,
       );

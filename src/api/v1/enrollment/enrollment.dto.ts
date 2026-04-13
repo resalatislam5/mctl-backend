@@ -1,5 +1,11 @@
 import { Document, Types } from 'mongoose';
 
+export type IEnrollmentStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
 export interface IBaseEnrollment {
   student_id: Types.ObjectId;
   batch_id: Types.ObjectId;
@@ -24,6 +30,7 @@ export interface IBaseEnrollment {
   discount: number;
   additional_discount: number;
   installment_date: { name: string; date: Date }[];
+  status: IEnrollmentStatus;
 }
 export interface ICreateEnrollment extends IBaseEnrollment, Document {}
 export interface IEnrollmentList extends IBaseEnrollment {
@@ -37,4 +44,5 @@ export interface IEnrollmentFindAllParams {
   batch_id?: Types.ObjectId;
   tenant_id: Types.ObjectId;
   installment_date?: object;
+  status?: IEnrollmentStatus;
 }

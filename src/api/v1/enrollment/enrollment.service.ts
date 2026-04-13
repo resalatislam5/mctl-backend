@@ -59,6 +59,7 @@ const create = ({
   installment_type,
   meal_accommodation,
   tenant_id,
+  status,
 }: IEnrollmentList) => {
   const data = new Enrollment({
     additional_discount,
@@ -80,6 +81,7 @@ const create = ({
     installment_type,
     meal_accommodation,
     tenant_id,
+    status,
   });
   return data.save();
 };

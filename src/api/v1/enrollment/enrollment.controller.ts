@@ -86,6 +86,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
                 total_amount: 1,
                 total_paid: 1,
                 admission_date: 1,
+                status: 1,
               },
             },
           ],
@@ -252,6 +253,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     agent_id,
     installment_type,
     meal_accommodation,
+    status,
   } = req.body as IEnrollmentList;
   try {
     const code = await generateCode(
@@ -303,6 +305,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       installment_type,
       meal_accommodation,
       tenant_id: req.user?.tenant_id,
+      status,
     });
 
     await auditLogService.create({
@@ -345,6 +348,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     agent_id,
     installment_type,
     meal_accommodation,
+    status,
   } = (req?.body || {}) as IEnrollmentList;
 
   try {
@@ -424,6 +428,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         agent_id,
         installment_type,
         meal_accommodation,
+        status,
       },
     });
 
@@ -446,6 +451,42 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
       success: true,
       message: 'Enrollment updated successfully',
       data: data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { _id } = req.params;
+  const { status } = req.body;
+
+  try {
+    checkMongooseId(_id as string);
+    const findSingle = await enrollmentService.findOne({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
+    if (!findSingle) {
+      return customError('Enrollment not found', 404);
+    }
+
+    const data = await enrollmentService.update({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+      data: {
+        status,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Enrollment status updated successfully',
+      data,
     });
   } catch (err) {
     next(err);
@@ -502,4 +543,12 @@ const select = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export default { findAll, create, findSingle, update, deleteItem, select };
+export default {
+  findAll,
+  create,
+  findSingle,
+  update,
+  deleteItem,
+  select,
+  updateStatus,
+};

@@ -18,6 +18,7 @@ const findAll = ({
   to_date,
   reference_id,
   tenant_id,
+  is_balance_transfer,
 }: IAccountTransactionFindAllParams) => {
   const query: any = { tenant_id };
 
@@ -31,6 +32,13 @@ const findAll = ({
   if (from_date || to_date) {
     query.createdAt = formatDateRange(from_date, to_date);
   }
+  if (is_balance_transfer === 'true') {
+    query.is_balance_transfer = true;
+  }
+  if (is_balance_transfer === 'false') {
+    query.is_balance_transfer = { $ne: true };
+  }
+
   return AccountTransaction.find(query);
 };
 
@@ -45,6 +53,7 @@ const create = (
     voucher_no,
     type,
     tenant_id,
+    is_balance_transfer,
   }: IAccountTransactionList,
   session?: ClientSession | null,
 ) => {
@@ -58,6 +67,7 @@ const create = (
     voucher_no,
     type,
     tenant_id,
+    is_balance_transfer,
   });
   return data.save({ ...(session && { session }) });
 };

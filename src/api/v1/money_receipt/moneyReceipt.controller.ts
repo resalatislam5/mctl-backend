@@ -269,10 +269,11 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           reference_type: 'MoneyReceipt',
           reference_id: data?._id,
           voucher_no: data?.voucher_no,
-          amount: Number(amount) - charge,
+          amount: Number(amount),
           type: 'CREDIT',
           description: `Payment received from student (${student_id}) via ${payment_method}`,
           tenant_id: req.user?.tenant_id,
+          is_balance_transfer: false,
         },
         session,
       );
@@ -304,6 +305,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
             type: 'DEBIT',
             description: `Auto transfer to account (${account!.transfer_acc_id}) [Student: ${student_id}]`,
             tenant_id: req.user?.tenant_id,
+            is_balance_transfer: true,
           },
           session,
         );
@@ -317,6 +319,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
             type: 'CREDIT',
             description: `Auto transfer from account (${acc_id}) [Student: ${student_id}]`,
             tenant_id: req.user?.tenant_id,
+            is_balance_transfer: true,
           },
           session,
         );
@@ -477,10 +480,11 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           reference_type: 'MoneyReceipt',
           reference_id: findSingle._id,
           voucher_no: findSingle.voucher_no,
-          amount: newAmount - newCharge,
+          amount: newAmount,
           type: 'CREDIT',
           description: `Payment received from student (${student_id}) via ${payment_method}`,
           tenant_id: req.user?.tenant_id,
+          is_balance_transfer: false,
         },
         session,
       );
@@ -496,6 +500,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             type: 'DEBIT',
             description: `Transaction charge for student (${student_id}) payment via ${payment_method}`,
             tenant_id: req.user?.tenant_id,
+            is_balance_transfer: false,
           },
           session,
         );
@@ -512,6 +517,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             type: 'DEBIT',
             description: `Auto transfer to account (${newAccount!.transfer_acc_id}) [Student: ${student_id}]`,
             tenant_id: req.user?.tenant_id,
+            is_balance_transfer: true,
           },
           session,
         );
@@ -525,6 +531,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
             type: 'CREDIT',
             description: `Auto transfer from account (${newAccId}) [Student: ${student_id}]`,
             tenant_id: req.user?.tenant_id,
+            is_balance_transfer: true,
           },
           session,
         );

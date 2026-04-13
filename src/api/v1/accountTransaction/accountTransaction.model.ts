@@ -13,6 +13,7 @@ const AccountTransactionSchema = new Schema<ICreateAccountTransaction>(
         'ExpenseHistory',
         'Account',
         'AgentPayment',
+        'BalanceTransfer',
       ],
       default: null,
     },
@@ -31,6 +32,7 @@ const AccountTransactionSchema = new Schema<ICreateAccountTransaction>(
     amount: { type: Number, required: true },
     description: { type: String, trim: true },
     date: { type: Date, default: Date.now },
+    is_balance_transfer: { type: Boolean, default: false },
   },
   {
     timestamps: true,

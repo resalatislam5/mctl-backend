@@ -29,7 +29,11 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
 
     batch_id: { type: Types.ObjectId, required: true, ref: 'Batch' },
     admission_date: { type: Date, required: true },
-
+    status: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'],
+      default: 'PENDING',
+    },
     courses: [
       {
         course_id: {

@@ -34,6 +34,12 @@ const enrollmentRoutes: Router = Router()
     authenticate,
     checkPermissionMiddleware('ENROLLMENT', 'can_delete'),
     enrollmentController.deleteItem,
+  )
+  .patch(
+    '/:_id/status',
+    authenticate,
+    checkPermissionMiddleware('ENROLLMENT', 'can_update'),
+    enrollmentController.updateStatus,
   );
 
 export default enrollmentRoutes;
