@@ -27,6 +27,12 @@ const ReportRoutes: Router = Router()
     '/account-ledger',
     authenticate,
     checkPermissionMiddleware('ACCOUNT_LEDGER', 'can_read'),
+    reportController.accountLedger,
+  )
+  .get(
+    '/account-transaction',
+    authenticate,
+    checkPermissionMiddleware('ACCOUNT_TRANSACTION', 'can_read'),
     accountTransactionController.findAll,
   );
 

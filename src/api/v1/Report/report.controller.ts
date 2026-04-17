@@ -4,6 +4,7 @@ import { convertObjectID } from '../../../utils/ConvertObjectID';
 import expenseHistoryService from '../expenseHistory/expenseHistory.service';
 import { customError } from '../../../utils/customError';
 import { formatDateRange } from '../../../utils/DataFormat';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
 
 const studentLedger = async (
   req: Request,
@@ -342,5 +343,113 @@ const upcomingInstallments = async (
     next(err);
   }
 };
+const accountLedger = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const from_date = req.query.from_date?.toString() || '';
+    const to_date = req.query.to_date?.toString() || '';
+    const account_id = req.query.account_id?.toString() || '';
+    if (!from_date || !to_date) {
+      throw customError('Both from_date and to_date are required', 400);
+    }
+    if (!account_id) {
+      throw customError('Account ID is required', 400);
+    }
 
-export default { studentLedger, expenseReport, upcomingInstallments };
+    const dateRange = formatDateRange(from_date, to_date);
+
+    if (!dateRange) {
+      throw customError('Invalid date range', 400);
+    }
+
+    const query: any = {
+      tenant_id: req.user?.tenant_id,
+      account_id: convertObjectID(account_id),
+    };
+    console.log(query);
+
+    const data = await accountTransactionService.aggregate([
+      { $match: query },
+      {
+        $set: {
+          amount: {
+            $cond: [
+              { $eq: ['$type', 'CREDIT'] },
+              '$amount',
+              { $multiply: ['$amount', -1] },
+            ],
+          },
+        },
+      },
+      {
+        $setWindowFields: {
+          sortBy: { createdAt: 1 },
+          output: {
+            last_balance: {
+              $sum: '$amount',
+              window: {
+                documents: ['unbounded', 'current'],
+              },
+            },
+          },
+        },
+      },
+      {
+        $facet: {
+          transactions: [
+            {
+              $match: {
+                date: dateRange,
+              },
+            },
+          ],
+          summary: [
+            {
+              $group: {
+                _id: null,
+                total_last_balance: { $last: '$last_balance' },
+                total: { $sum: 1 },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          transactions: 1,
+          total_last_balance: {
+            $arrayElemAt: ['$summary.total_last_balance', 0],
+          },
+          total: { $arrayElemAt: ['$summary.total', 0] },
+        },
+      },
+    ]);
+
+    const result = data?.[0] || {
+      transactions: [],
+      total_last_balance: 0,
+      total: 0,
+    };
+
+    res.json({
+      success: true,
+      total: result.total,
+      data: {
+        transactions: result.transactions,
+        total_last_balance: result.total_last_balance,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default {
+  studentLedger,
+  expenseReport,
+  upcomingInstallments,
+  accountLedger,
+};

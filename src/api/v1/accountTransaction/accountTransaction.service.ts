@@ -11,6 +11,7 @@ import {
 } from './accountTransaction.dto';
 import AccountTransaction from './accountTransaction.model';
 import { formatDateRange } from '../../../utils/DataFormat';
+import { PipelineStage } from 'mongoose';
 
 const findAll = ({
   account_id,
@@ -119,6 +120,9 @@ const deleteMany = (filter: Record<string, any>): Query<DeleteResult, any> => {
   return AccountTransaction.deleteMany(filter);
 };
 
+const aggregate = (pipeline: PipelineStage[]) => {
+  return AccountTransaction.aggregate(pipeline);
+};
 export default {
   findAll,
   create,
@@ -126,5 +130,6 @@ export default {
   update,
   count,
   deleteItem,
+  aggregate,
   deleteMany,
 };
