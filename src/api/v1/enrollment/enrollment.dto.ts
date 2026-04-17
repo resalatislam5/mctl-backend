@@ -12,17 +12,12 @@ export interface IBaseEnrollment {
   agent_id: Types.ObjectId;
   code: string;
   admission_date: Date;
-  courses: {
-    course_id: Types.ObjectId;
-    status: 'YES' | 'NO';
-    soft_copy: 'YES' | 'NO';
-  }[];
   installment_type: 'YES' | 'NO';
   course_ids: Types.ObjectId[];
   course_mode: 'ONLINE' | 'OFFLINE';
   total_price: number;
   course_type: 'SPECIFIC' | 'PACKAGE';
-  package_id: Types.ObjectId;
+  package_id: Types.ObjectId | null;
   tenant_id: Types.ObjectId;
   total_amount: number;
   total_paid: number;

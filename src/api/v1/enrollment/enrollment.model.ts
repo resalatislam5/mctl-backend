@@ -34,18 +34,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
       enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'],
       default: 'PENDING',
     },
-    courses: [
-      {
-        course_id: {
-          type: Types.ObjectId,
-          required: true,
-          ref: 'Course',
-        },
-        status: { type: String, enum: ['YES', 'NO'], default: 'NO' },
-        soft_copy: { type: String, enum: ['YES', 'NO'], default: 'NO' },
-        _id: false,
-      },
-    ],
+
     course_ids: {
       type: [Types.ObjectId],
       ref: 'Course',
@@ -64,6 +53,7 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     package_id: {
       type: Types.ObjectId,
       ref: 'Package',
+      default: null,
     },
 
     total_amount: { type: Number, required: true },

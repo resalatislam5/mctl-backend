@@ -54,18 +54,19 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
           },
         },
       },
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
-      },
+
       {
         $sort: { createdAt: -1 },
       },
       {
         $facet: {
           data: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
             {
               $project: {
                 form_account: 0,

@@ -39,34 +39,35 @@ const findOne = (key: Partial<IEnrollmentList>) => {
   return Enrollment.findOne(key);
 };
 
-const create = ({
-  additional_discount,
-  admission_date,
-  batch_id,
-  course_mode,
-  courses,
-  discount,
-  installment_date,
-  student_id,
-  total_price,
-  total_amount,
-  total_paid,
-  code,
-  course_type,
-  package_id,
-  course_ids,
-  agent_id,
-  installment_type,
-  meal_accommodation,
-  tenant_id,
-  status,
-}: IEnrollmentList) => {
+const create = (
+  {
+    additional_discount,
+    admission_date,
+    batch_id,
+    course_mode,
+    discount,
+    installment_date,
+    student_id,
+    total_price,
+    total_amount,
+    total_paid,
+    code,
+    course_type,
+    package_id,
+    course_ids,
+    agent_id,
+    installment_type,
+    meal_accommodation,
+    tenant_id,
+    status,
+  }: IEnrollmentList,
+  session: ClientSession | null,
+) => {
   const data = new Enrollment({
     additional_discount,
     admission_date,
     batch_id,
     course_mode,
-    courses,
     discount,
     installment_date,
     student_id,
@@ -83,7 +84,7 @@ const create = ({
     tenant_id,
     status,
   });
-  return data.save();
+  return data.save({ ...(session && { session }) });
 };
 
 const update = ({

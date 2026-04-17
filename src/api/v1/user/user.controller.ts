@@ -55,18 +55,19 @@ const findAll = async (
           role_name: { $ifNull: [{ $arrayElemAt: ['$role.name', 0] }, null] },
         },
       },
-      {
-        $limit: limit,
-      },
-      {
-        $skip: skip,
-      },
+
       {
         $sort: { createdAt: -1 },
       },
       {
         $facet: {
           data: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
             {
               $project: {
                 _id: 1,

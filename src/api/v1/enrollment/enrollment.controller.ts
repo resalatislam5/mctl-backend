@@ -9,6 +9,8 @@ import { generateCode } from '../counter/generateCode';
 import packageService from '../package_new/package.service';
 import { IEnrollmentList } from './enrollment.dto';
 import enrollmentService from './enrollment.service';
+import { withTransaction } from '../../../utils/withTransaction';
+import courseProgressService from '../course_progress/courseProgress.service';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const query: any = { tenant_id: req.user?.tenant_id };
@@ -68,13 +70,16 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
       {
         $sort: { createdAt: -1 },
       },
-      {
-        $skip: skip,
-      },
-      { $limit: limit },
+
       {
         $facet: {
           data: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: limit,
+            },
             {
               $project: {
                 _id: 1,
@@ -257,65 +262,65 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     status,
   } = req.body as IEnrollmentList;
   try {
-    const code = await generateCode(
-      'enrollment',
-      'ENR',
-      null,
-      req.user?.tenant_id,
-    );
+    const data = withTransaction(async (session) => {
+      const code = await generateCode(
+        'enrollment',
+        'ENR',
+        session,
+        req.user?.tenant_id,
+      );
 
-    let newCourses: IEnrollmentList['courses'] = [];
-    if (course_type === 'PACKAGE') {
-      const data = await packageService.findOne({
-        _id: convertObjectID(package_id),
-        tenant_id: req.user?.tenant_id,
-      });
-      newCourses =
-        data?.course_ids?.map((item) => ({
-          course_id: item,
-          status: 'NO',
-          soft_copy: 'NO',
-        })) || [];
-    }
+      let newCourses: IEnrollmentList['course_ids'] = [];
+      if (course_type === 'PACKAGE') {
+        const data = await packageService.findOne({
+          _id: convertObjectID(package_id || ''),
+          tenant_id: req.user?.tenant_id,
+        });
+        newCourses = data?.course_ids || [];
+      }
 
-    if (course_type === 'SPECIFIC') {
-      newCourses = course_ids?.map((item) => ({
-        course_id: item,
-        status: 'NO',
-        soft_copy: 'NO',
-      }));
-    }
+      if (course_type === 'SPECIFIC') {
+        newCourses = course_ids || [];
+      }
 
-    const data = await enrollmentService.create({
-      additional_discount,
-      admission_date,
-      batch_id,
-      code,
-      course_mode,
-      courses: newCourses,
-      discount,
-      installment_date,
-      student_id,
-      total_amount,
-      total_price,
-      total_paid,
-      course_type,
-      package_id,
-      course_ids,
-      agent_id,
-      installment_type,
-      meal_accommodation,
-      tenant_id: req.user?.tenant_id,
-      status,
-    });
+      const data = await enrollmentService.create(
+        {
+          additional_discount,
+          admission_date,
+          batch_id,
+          code,
+          course_mode,
+          discount,
+          installment_date,
+          student_id,
+          total_amount,
+          total_price,
+          total_paid,
+          course_type,
+          package_id,
+          course_ids: newCourses,
+          agent_id,
+          installment_type,
+          meal_accommodation,
+          tenant_id: req.user?.tenant_id,
+          status,
+        },
+        session,
+      );
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'CREATE',
-      entity: 'Enrollment',
-      entity_id: data?._id,
-      description: `A new Enrollment has been created Enrollment_id: ${data?._id?.toString()}`,
+      await auditLogService.create(
+        {
+          req,
+          user: req.user,
+          action: 'CREATE',
+          entity: 'Enrollment',
+          entity_id: data?._id,
+          description: `A new Enrollment has been created Enrollment_id: ${data?._id?.toString()}`,
+        },
+        session,
+      );
+
+      return data;
     });
 
     res.json({
@@ -355,99 +360,126 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
   try {
     checkMongooseId(_id as string);
 
-    const findSingle = await enrollmentService.findOne({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-    });
+    const data = await withTransaction(async (session) => {
+      const findSingle = await enrollmentService
+        .findOne({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
 
-    if (!findSingle) {
-      return customError('Enrollment not found', 404);
-    }
+      if (!findSingle) {
+        return customError('Enrollment not found', 404);
+      }
+      let newCourses: IEnrollmentList['course_ids'] = [];
+      if (course_type === 'PACKAGE') {
+        const data = await packageService.findOne({
+          _id: convertObjectID(package_id || ''),
+          tenant_id: req.user?.tenant_id,
+        });
+        newCourses = data?.course_ids || [];
+      }
 
-    let newCourses: IEnrollmentList['courses'] = [];
+      if (course_type === 'SPECIFIC') {
+        newCourses = course_ids || [];
+      }
 
-    // Get existing course statuses and soft_copy in a Map
-    const existingCoursesMap = new Map<
-      string,
-      { status: 'YES' | 'NO'; soft_copy: 'YES' | 'NO' }
-    >();
-    findSingle.courses.forEach((c) => {
-      existingCoursesMap.set(c.course_id.toString(), {
-        status: c.status,
-        soft_copy: c.soft_copy,
-      });
-    });
-
-    if (course_type === 'PACKAGE') {
-      const data = await packageService.findOne({
-        _id: convertObjectID(package_id),
+      const data = await enrollmentService.update({
+        _id: convertObjectID(_id as string),
         tenant_id: req.user?.tenant_id,
+        data: {
+          additional_discount,
+          admission_date,
+          batch_id,
+          code,
+          course_mode,
+          discount,
+          installment_date,
+          student_id,
+          total_amount,
+          total_price,
+          total_paid,
+          course_type,
+          package_id: course_type === 'PACKAGE' ? package_id : null,
+          course_ids: newCourses,
+          agent_id,
+          installment_type,
+          meal_accommodation,
+          status,
+        },
       });
 
-      newCourses =
-        data?.course_ids?.map((item) => {
-          const existing = existingCoursesMap.get(item.toString());
-          return {
-            course_id: item,
-            status: existing?.status || 'NO',
-            soft_copy: existing?.soft_copy || 'NO',
-          };
-        }) || [];
-    }
+      if (findSingle?.status === 'APPROVED') {
+        const findCourseProgress = await courseProgressService
+          .findOne({
+            enrollment_id: convertObjectID(_id as string),
+            tenant_id: req.user?.tenant_id,
+          })
+          .session(session);
 
-    if (course_type === 'SPECIFIC') {
-      newCourses =
-        course_ids?.map((item) => {
-          const existing = existingCoursesMap.get(item.toString());
-          return {
-            course_id: item,
-            status: existing?.status || 'NO',
-            soft_copy: existing?.soft_copy || 'NO',
-          };
-        }) || [];
-    }
+        if (findCourseProgress) {
+          const existingCoursesMap = new Map<
+            string,
+            { status: 'YES' | 'NO'; soft_copy: 'YES' | 'NO' }
+          >();
 
-    const data = await enrollmentService.update({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-      data: {
-        additional_discount,
-        admission_date,
-        batch_id,
-        code,
-        course_mode,
-        courses: newCourses,
-        discount,
-        installment_date,
-        student_id,
-        total_amount,
-        total_price,
-        total_paid,
-        course_type,
-        package_id,
-        course_ids: course_type === 'SPECIFIC' ? course_ids : [],
-        agent_id,
-        installment_type,
-        meal_accommodation,
-        status,
-      },
+          findCourseProgress.courses.forEach((c) => {
+            existingCoursesMap.set(c.course_id.toString(), {
+              status: c.status,
+              soft_copy: c.soft_copy,
+            });
+          });
+
+          const newCourses =
+            data?.course_ids?.map((item) => {
+              const existing = existingCoursesMap.get(item.toString());
+              return {
+                course_id: item,
+                status: existing?.status || 'NO',
+                soft_copy: existing?.soft_copy || 'NO',
+              };
+            }) || [];
+
+          await courseProgressService.update({
+            _id: findCourseProgress?._id,
+            tenant_id: req.user?.tenant_id,
+            data: {
+              courses: newCourses,
+            },
+          });
+        } else {
+          await courseProgressService.create(
+            {
+              batch_id: findSingle?.batch_id,
+              student_id: findSingle?.student_id,
+              tenant_id: req.user?.tenant_id,
+              courses: findSingle?.course_ids?.map((item) => ({
+                course_id: item,
+                status: 'NO',
+                soft_copy: 'NO',
+              })),
+              enrollment_id: findSingle?._id,
+            },
+            session,
+          );
+        }
+      }
+
+      const compareChange = detectChanges(
+        findSingle.toObject(),
+        data?.toObject(),
+      );
+
+      await auditLogService.create({
+        req,
+        user: req.user,
+        action: 'UPDATE',
+        entity: 'Enrollment',
+        entity_id: findSingle._id,
+        changes: compareChange,
+        description: `A new Enrollment has been deleted Enrollment_id: ${_id}`,
+      });
     });
-
-    const compareChange = detectChanges(
-      findSingle.toObject(),
-      data?.toObject(),
-    );
-
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'UPDATE',
-      entity: 'Enrollment',
-      entity_id: findSingle._id,
-      changes: compareChange,
-      description: `A new Enrollment has been deleted Enrollment_id: ${_id}`,
-    });
-
     res.json({
       success: true,
       message: 'Enrollment updated successfully',
@@ -476,14 +508,39 @@ const updateStatus = async (
       return customError('Enrollment not found', 404);
     }
 
-    const data = await enrollmentService.update({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-      data: {
-        status,
-      },
-    });
+    if (findSingle?.status === 'APPROVED') {
+      return customError('Enrollment is already approved', 400);
+    }
 
+    const data = withTransaction(async (session) => {
+      const data = await enrollmentService.update({
+        _id: convertObjectID(_id as string),
+        tenant_id: req.user?.tenant_id,
+        data: {
+          status,
+        },
+        session,
+      });
+
+      if (status === 'APPROVED') {
+        await courseProgressService.create(
+          {
+            batch_id: findSingle?.batch_id,
+            student_id: findSingle?.student_id,
+            tenant_id: req.user?.tenant_id,
+            courses: findSingle?.course_ids?.map((item) => ({
+              course_id: item,
+              status: 'NO',
+              soft_copy: 'NO',
+            })),
+            enrollment_id: findSingle?._id,
+          },
+          session,
+        );
+      }
+
+      return data;
+    });
     res.json({
       success: true,
       message: 'Enrollment status updated successfully',
