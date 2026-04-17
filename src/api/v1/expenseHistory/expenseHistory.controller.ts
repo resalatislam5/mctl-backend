@@ -1,17 +1,17 @@
 import { NextFunction, Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { IParams } from '../../../types/commonTypes';
 import { checkMongooseId } from '../../../utils/checkMongooseId';
+import { convertObjectID } from '../../../utils/ConvertObjectID';
 import { customError } from '../../../utils/customError';
 import { detectChanges } from '../../../utils/detectChanges';
+import { withTransaction } from '../../../utils/withTransaction';
+import accountService from '../account/account.service';
+import accountTransactionService from '../accountTransaction/accountTransaction.service';
 import auditLogService from '../auditLog/auditLog.service';
 import { generateCode } from '../counter/generateCode';
 import { IExpenseHistoryList } from './expenseHistory.dto';
 import expenseHistoryService from './expenseHistory.service';
-import { convertObjectID } from '../../../utils/ConvertObjectID';
-import { withTransaction } from '../../../utils/withTransaction';
-import accountService from '../account/account.service';
-import accountTransactionService from '../accountTransaction/accountTransaction.service';
-import { Types } from 'mongoose';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const query: any = {};
@@ -153,15 +153,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       if (!account) {
         customError('Account not found', 404);
       }
-      await accountService.update({
-        _id: acc_id,
-        tenant_id: req.user?.tenant_id,
-        data: {
-          available_balance:
-            Number(account?.available_balance || 0) - Number(total_amount || 0),
-        },
-        session,
-      });
 
       const data = await expenseHistoryService.create({
         acc_id,
@@ -235,20 +226,6 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         customError('Account not found', 404);
       }
 
-      const diff =
-        Number(findSingle.total_amount || 0) - Number(total_amount || 0);
-
-      await accountService.update({
-        _id: acc_id,
-        tenant_id: req.user?.tenant_id,
-        data: {
-          available_balance: (
-            Number(account?.available_balance || 0) + diff
-          ).toFixed(2),
-        },
-        session,
-      });
-
       const data = await expenseHistoryService.update({
         _id: convertObjectID(_id as string),
         tenant_id: req.user?.tenant_id,
@@ -269,6 +246,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           tenant_id: req.user?.tenant_id,
         })
         .session(session);
+
+      if (!accountTransaction)
+        customError('Account Transaction Not Found', 404);
 
       await accountTransactionService.update({
         _id: accountTransaction?._id as Types.ObjectId,
@@ -324,22 +304,6 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
       return customError('Expense not found', 404);
     }
     await withTransaction(async (session) => {
-      const account = await accountService
-        .findOne({ _id: findSingle?.acc_id, tenant_id: req.user?.tenant_id })
-        .session(session);
-
-      await accountService.update({
-        _id: findSingle.acc_id,
-        tenant_id: req.user?.tenant_id,
-        data: {
-          available_balance: (
-            Number(account?.available_balance || 0) +
-            Number(findSingle.total_amount || 0)
-          ).toFixed(2),
-        },
-        session,
-      });
-
       const accountTransaction = await accountTransactionService.findOne({
         reference_id: findSingle._id,
         tenant_id: req.user?.tenant_id,

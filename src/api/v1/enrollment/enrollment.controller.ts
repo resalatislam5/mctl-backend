@@ -62,6 +62,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
         $addFields: {
           student_name: { $ifNull: ['$student_info.name', null] },
           batch_no: { $ifNull: ['$batches.batch_no', null] },
+          student_code: { $ifNull: ['$student_info.code', null] },
         },
       },
       {
@@ -80,6 +81,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
                 student_id: 1,
                 batch_id: 1,
                 student_name: 1,
+                student_code: 1,
                 code: 1,
                 batch_no: 1,
                 course_mode: 1,
@@ -240,7 +242,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     admission_date,
     batch_id,
     course_mode,
-    courses,
     discount,
     installment_date,
     student_id,

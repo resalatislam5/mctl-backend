@@ -31,11 +31,6 @@ const AccountSchema = new Schema<ICreateAccount>(
       trim: true,
       default: 0,
     },
-    available_balance: {
-      type: Number,
-      trim: true,
-      default: 0,
-    },
     balance_transfer: {
       type: String,
       enum: ['YES', 'NO'],

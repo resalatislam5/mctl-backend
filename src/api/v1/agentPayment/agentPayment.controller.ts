@@ -200,16 +200,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         .findOne({ _id: acc_id, tenant_id: req.user?.tenant_id })
         .session(session || null);
       if (!account) customError('Account Not Found', 404);
-      await accountService.update({
-        _id: acc_id,
-        tenant_id: req.user?.tenant_id,
-        data: {
-          available_balance: (
-            Number(account?.available_balance) - Number(amount)
-          ).toFixed(2),
-        },
-        session,
-      });
 
       const commission = await agentCommissionService
         .findOne({
@@ -269,7 +259,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         session,
       );
 
-      // throw new Error('Custom error');
       await auditLogService.create({
         req,
         user: req.user,
@@ -301,7 +290,6 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     commission_id,
     reference_no,
     note,
-    paid_amount,
     payment_method,
     date,
   } = req.body as IAgentPaymentList;
@@ -318,12 +306,6 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const data = await withTransaction(async (session) => {
-      const oldAccId = findSingle.acc_id.toString();
-      const newAccId = acc_id.toString();
-
-      const oldAmount = Number(findSingle.amount || 0);
-      const newAmount = Number(amount || 0);
-
       const mainTx = await accountTransactionService
         .findOne({
           reference_id: findSingle._id,
@@ -336,81 +318,21 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         customError('Transaction not found', 404);
       }
 
-      if (oldAccId !== newAccId) {
-        const oldAccount = await accountService
-          .findOne({ _id: oldAccId, tenant_id: req.user?.tenant_id })
-          .session(session || null);
+      await accountTransactionService.update({
+        _id: mainTx?._id as Types.ObjectId,
+        tenant_id: req.user?.tenant_id,
+        data: {
+          account_id: convertObjectID(acc_id),
+          amount: amount,
+          description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
+        },
+        session,
+      });
 
-        if (!oldAccount) customError('Old Account Not Found', 404);
-
-        await accountService.update({
-          _id: oldAccId,
-          tenant_id: req.user?.tenant_id,
-          data: {
-            available_balance: (
-              Number(oldAccount?.available_balance || 0) + oldAmount
-            ).toFixed(2),
-          },
-          session,
-        });
-
-        const newAccount = await accountService
-          .findOne({ _id: newAccId, tenant_id: req.user?.tenant_id })
-          .session(session || null);
-
-        if (!newAccount) customError('New Account Not Found', 404);
-
-        await accountService.update({
-          _id: newAccId,
-          tenant_id: req.user?.tenant_id,
-          data: {
-            available_balance: (
-              Number(newAccount?.available_balance || 0) - newAmount
-            ).toFixed(2),
-          },
-          session,
-        });
-
-        await accountTransactionService.update({
-          _id: mainTx?._id as Types.ObjectId,
-          tenant_id: req.user?.tenant_id,
-          data: {
-            account_id: newAccId,
-            amount: newAmount.toFixed(2),
-            description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
-          },
-          session,
-        });
-      } else {
-        const diff = newAmount - oldAmount;
-
-        const account = await accountService
-          .findOne({ _id: newAccId, tenant_id: req.user?.tenant_id })
-          .session(session || null);
-
-        if (!account) customError('Account Not Found', 404);
-
-        await accountService.update({
-          _id: newAccId,
-          tenant_id: req.user?.tenant_id,
-          data: {
-            available_balance: (
-              Number(account?.available_balance || 0) - diff
-            ).toFixed(2),
-          },
-          session,
-        });
-        await accountTransactionService.update({
-          _id: mainTx?._id as Types.ObjectId,
-          tenant_id: req.user?.tenant_id,
-          data: {
-            account_id: newAccId,
-            amount: amount,
-            description: `Agent commission payment (Agent ID: ${agent_id}) via ${payment_method}`,
-          },
-          session,
-        });
-      }
+      const oldAmount = findSingle.amount;
+      const previousPaid = findSingle.paid_amount || 0;
+      const diff = amount - oldAmount;
+      const newPaidAmount = previousPaid + diff;
 
       const data = await agentPaymentService.update({
         _id: convertObjectID(_id as string),
@@ -420,9 +342,9 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           amount,
           agent_id,
           commission_id,
-          note: reference_no || '',
+          note: note || '',
           reference_no: reference_no || '',
-          paid_amount,
+          paid_amount: newPaidAmount,
           payment_method,
           date,
         },
@@ -489,19 +411,6 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
         .session(session || null);
 
       if (!oldAccount) customError('Old Account Not Found', 404);
-
-      await accountService.update({
-        _id: oldAccId,
-        tenant_id: req.user?.tenant_id,
-
-        data: {
-          available_balance: (
-            Number(oldAccount?.available_balance || 0) +
-            Number(findSingle.amount || 0)
-          ).toFixed(2),
-        },
-        session,
-      });
 
       const commission = await agentCommissionService
         .findOne({

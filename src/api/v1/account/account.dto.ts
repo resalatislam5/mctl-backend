@@ -8,7 +8,6 @@ export interface IBaseAccount {
   bank_name: string;
   branch_name: string;
   opening_balance: number;
-  available_balance: number;
   balance_transfer: 'YES' | 'NO';
   transfer_acc_type: IPaymentMethod;
   transfer_acc_id: Types.ObjectId;

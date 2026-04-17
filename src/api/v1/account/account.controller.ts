@@ -78,7 +78,6 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
           bank_name,
           branch_name,
           opening_balance,
-          available_balance: opening_balance,
           charge_percent,
           balance_transfer,
           transfer_acc_type,
@@ -151,21 +150,12 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     });
     if (!findSingle) return customError('Account not found', 404);
     const data = await withTransaction(async (session) => {
-      // 🔹 Optimized available_balance calculation
-      const balanceDiff =
-        Number(opening_balance || 0) - Number(findSingle.opening_balance || 0);
-
-      const available_balance = (
-        Number(findSingle.available_balance || 0) + balanceDiff
-      ).toFixed(2);
-
       const updateData = {
         acc_number,
         account_type,
         bank_name,
         branch_name,
         opening_balance,
-        available_balance,
         name,
         charge_percent,
         status,
