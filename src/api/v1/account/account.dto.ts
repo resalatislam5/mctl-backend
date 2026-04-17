@@ -25,4 +25,5 @@ export interface IAccountFindAllParams {
   status?: IStatus;
   account_type?: string;
   tenant_id: Types.ObjectId;
+  balance_transfer?: 'YES' | 'NO';
 }

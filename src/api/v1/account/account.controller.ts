@@ -302,6 +302,8 @@ const select = async (req: Request, res: Response, next: NextFunction) => {
   let new_account_type = '';
   let account_type = req.query.account_type?.toString() || '';
   const payment_method = req.query.payment_method?.toString() || '';
+  const balance_transfer = (req.query.balance_transfer?.toString() ||
+    undefined) as 'YES' | 'NO';
   if (account_type) {
     new_account_type = account_type;
   } else if (payment_method) {
@@ -314,6 +316,7 @@ const select = async (req: Request, res: Response, next: NextFunction) => {
         status: 'ACTIVE',
         account_type: new_account_type,
         tenant_id: req.user?.tenant_id,
+        balance_transfer,
       })
       .select('name code _id');
     res.json({ success: true, data });

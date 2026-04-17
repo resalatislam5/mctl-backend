@@ -8,6 +8,7 @@ const findAll = ({
   account_type,
   status,
   tenant_id,
+  balance_transfer,
 }: IAccountFindAllParams) => {
   const query: Record<string, unknown> = { tenant_id };
 
@@ -27,7 +28,9 @@ const findAll = ({
       $options: 'i', // ignore case
     };
   }
-
+  if (balance_transfer) {
+    query.balance_transfer = balance_transfer;
+  }
   return Account.find(query);
 };
 
