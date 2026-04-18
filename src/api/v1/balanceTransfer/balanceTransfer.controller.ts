@@ -259,7 +259,7 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     if (!to_acc_transaction)
       customError('To Account Transaction Not Found', 404);
 
-    const data = withTransaction(async (session) => {
+    const data = await withTransaction(async (session) => {
       const from_acc = await accountService.findOne({
         _id: from_acc_id,
         tenant_id: req.user?.tenant_id,

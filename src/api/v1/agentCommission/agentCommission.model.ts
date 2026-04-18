@@ -39,6 +39,12 @@ const AgentCommissionSchema = new Schema<ICreateAgentCommission>(
       trim: true,
       default: 0,
     },
+    min_limit: {
+      type: Number,
+      required: true,
+      trim: true,
+      default: 0,
+    },
     commission_rate: {
       type: Number,
       required: true,

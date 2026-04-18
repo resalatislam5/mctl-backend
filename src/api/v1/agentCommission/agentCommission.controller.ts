@@ -110,13 +110,13 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
       tenant_id: req.user?.tenant_id,
     });
     for (const agent of agents) {
-      const enrollments = await enrollmentService.findAll({
+      const AllEnrollments = await enrollmentService.findAll({
         agent_id: agent?._id,
         batch_id: convertObjectID(batch_id),
         tenant_id: req.user?.tenant_id,
       });
-      if (!enrollments.length) continue;
-
+      if (!AllEnrollments.length) continue;
+      const enrollments = AllEnrollments.filter((e) => e.status === 'APPROVED');
       const eligible = enrollments.filter((e) => {
         const percent =
           (Number(e.total_paid || 0) /
@@ -162,7 +162,6 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
       // }
 
       if (!existing) {
-        // 👉 CREATE
         await agentCommissionService.create({
           agent_id: agent?._id,
           batch_id,
@@ -172,10 +171,9 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
           commission_rate: agent.commission,
           commission_amount: commission_amount,
           tenant_id: req.user?.tenant_id,
+          min_limit: agent.min_limit,
         });
       } else {
-        // 👉 UPDATE
-
         await agentCommissionService.update({
           _id: existing._id,
           tenant_id: req.user?.tenant_id,
@@ -186,6 +184,7 @@ const generate = async (req: Request, res: Response, next: NextFunction) => {
               total_amount,
               commission_rate: agent.commission,
               commission_amount,
+              min_limit: agent.min_limit,
             },
           },
         });

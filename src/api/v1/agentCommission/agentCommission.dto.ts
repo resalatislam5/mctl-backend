@@ -8,6 +8,7 @@ export interface IBaseAgentCommission {
   total_students: number;
   eligible_students: number;
   total_amount: number;
+  min_limit: number;
   commission_rate: number;
   commission_amount: number;
   paid_amount: number;

@@ -262,13 +262,16 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
     status,
   } = req.body as IEnrollmentList;
   try {
-    const data = withTransaction(async (session) => {
-      const code = await generateCode(
-        'enrollment',
-        'ENR',
-        session,
-        req.user?.tenant_id,
-      );
+    const data = await withTransaction(async (session) => {
+      const enrollment = await enrollmentService.findOne({
+        student_id: convertObjectID(student_id || ''),
+        batch_id: convertObjectID(batch_id || ''),
+        tenant_id: req.user?.tenant_id,
+      });
+
+      if (enrollment) {
+        customError('Enrollment already exists', 400);
+      }
 
       let newCourses: IEnrollmentList['course_ids'] = [];
       if (course_type === 'PACKAGE') {
@@ -283,6 +286,12 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
         newCourses = course_ids || [];
       }
 
+      const code = await generateCode(
+        'enrollment',
+        'ENR',
+        session,
+        req.user?.tenant_id,
+      );
       const data = await enrollmentService.create(
         {
           additional_discount,
@@ -512,7 +521,7 @@ const updateStatus = async (
       return customError('Enrollment is already approved', 400);
     }
 
-    const data = withTransaction(async (session) => {
+    const data = await withTransaction(async (session) => {
       const data = await enrollmentService.update({
         _id: convertObjectID(_id as string),
         tenant_id: req.user?.tenant_id,
