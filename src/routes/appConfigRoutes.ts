@@ -17,6 +17,7 @@ const appConfigRoutes: Router = Router()
     upload.fields([
       { name: 'logo', maxCount: 1 },
       { name: 'favicon', maxCount: 1 },
+      { name: 'seal_stamp', maxCount: 1 },
     ]),
     checkPermissionMiddleware('APP_CONFIG', 'can_update'),
     appConfigController.update,

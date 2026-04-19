@@ -42,10 +42,13 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
 
   const logo = files?.logo?.[0];
   const favicon = files?.favicon?.[0];
+  const seal_stamp = files?.seal_stamp?.[0];
   let logoUrl: string | null = null;
   let logoPublicId: string | null = null;
   let faviconUrl: string | null = null;
   let faviconPublicId: string | null = null;
+  let sealStampUrl: string | null = null;
+  let sealStampPublicId: string | null = null;
 
   if (logo) {
     if (findSingle?.logo_public_id) {
@@ -89,6 +92,27 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     faviconPublicId = result.public_id;
   }
 
+  if (seal_stamp) {
+    if (findSingle?.seal_stamp_public_id) {
+      await cloudinary.uploader.destroy(findSingle.seal_stamp_public_id);
+    }
+
+    const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'app_info' },
+        (error, result) => {
+          if (result) resolve(result);
+          else reject(error);
+        },
+      );
+      streamifier
+        .createReadStream((seal_stamp as Express.Multer.File).buffer)
+        .pipe(stream);
+    });
+    sealStampUrl = result.secure_url;
+    sealStampPublicId = result.public_id;
+  }
+
   try {
     const data = await withTransaction(async (session) => {
       const data = await appConfigService.update(
@@ -106,6 +130,8 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
           phone_2,
           short_company_name,
           enrollment_color,
+          seal_stamp: sealStampUrl,
+          seal_stamp_public_id: sealStampPublicId,
         },
         session,
       );

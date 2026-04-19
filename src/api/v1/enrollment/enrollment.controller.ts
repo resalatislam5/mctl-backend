@@ -139,7 +139,7 @@ const findSingle = async (
       {
         $lookup: {
           from: 'courses',
-          localField: 'courses.course_id',
+          localField: 'course_ids',
           foreignField: '_id',
           as: 'course_details',
         },
@@ -599,10 +599,13 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const select = async (req: Request, res: Response, next: NextFunction) => {
-  // const student_id = req.query?.student_id?.toString() || '';
+  const student_id = req.query?.student_id?.toString() || '';
   try {
     const data = await enrollmentService
-      .findAll({ tenant_id: req.user?.tenant_id })
+      .findAll({
+        student_id: convertObjectID(student_id),
+        tenant_id: req.user?.tenant_id,
+      })
       .select('total_amount total_paid code _id');
     res.json({ success: true, data });
   } catch (err) {

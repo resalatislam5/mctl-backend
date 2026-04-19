@@ -28,6 +28,8 @@ const update = (
     phone_2,
     short_company_name,
     enrollment_color,
+    seal_stamp,
+    seal_stamp_public_id,
   }: IAppConfigList,
   session?: ClientSession | null,
 ) => {
@@ -47,6 +49,8 @@ const update = (
         ...(phone_2 && { phone_2 }),
         ...(short_company_name && { short_company_name }),
         ...(enrollment_color && { enrollment_color }),
+        ...(seal_stamp && { seal_stamp }),
+        ...(seal_stamp_public_id && { seal_stamp_public_id }),
       },
     },
     {

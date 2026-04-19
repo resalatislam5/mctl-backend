@@ -8,11 +8,6 @@ const AppConfigSchema = new Schema<ICreateAppConfig>(
       ref: 'Tenant',
       required: true,
     },
-    logo: {
-      type: String,
-      trim: true,
-      default: null,
-    },
     company_name: {
       type: String,
       trim: true,
@@ -58,12 +53,27 @@ const AppConfigSchema = new Schema<ICreateAppConfig>(
       trim: true,
       default: null,
     },
+    favicon_public_id: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    logo: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     logo_public_id: {
       type: String,
       trim: true,
       default: null,
     },
-    favicon_public_id: {
+    seal_stamp: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    seal_stamp_public_id: {
       type: String,
       trim: true,
       default: null,

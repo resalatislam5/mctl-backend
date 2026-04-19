@@ -14,6 +14,8 @@ export interface IBaseAppConfig {
   phone: string | null;
   phone_2: string | null;
   enrollment_color: string | null;
+  seal_stamp: string | null;
+  seal_stamp_public_id: string | null;
 }
 
 export interface ICreateAppConfig extends IBaseAppConfig, Document {}
