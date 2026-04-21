@@ -331,10 +331,33 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         session,
       });
 
-      const oldAmount = findSingle.amount;
+      if (commission_id.toString() !== findSingle.commission_id.toString())
+        customError('Cannot change commission', 404);
+      if (agent_id.toString() !== findSingle.agent_id.toString())
+        customError('Cannot change agent', 404);
+
+      const oldAmount = findSingle.amount || 0;
       const previousPaid = findSingle.paid_amount || 0;
-      const diff = amount - oldAmount;
-      const newPaidAmount = previousPaid + diff;
+      const diff = Number(amount || 0) - Number(oldAmount || 0);
+      const newPaidAmount = Number(previousPaid || 0) + diff;
+
+      const commission = await agentCommissionService
+        .findOne({
+          _id: commission_id,
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session || null);
+
+      if (!commission) customError('Commission Not Found', 404);
+
+      await agentCommissionService.update({
+        _id: commission?._id as Types.ObjectId,
+        tenant_id: req.user?.tenant_id,
+        data: {
+          paid_amount: (Number(commission?.paid_amount || 0) + diff).toFixed(2),
+        },
+        session,
+      });
 
       const data = await agentPaymentService.update({
         _id: convertObjectID(_id as string),
