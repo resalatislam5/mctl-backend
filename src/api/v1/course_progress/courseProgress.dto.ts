@@ -10,6 +10,7 @@ export interface IBaseCourseProgress {
     status: 'YES' | 'NO';
     soft_copy: 'YES' | 'NO';
   }[];
+  // status: 'COMPLETED' | 'ABSENT' | 'ON_GOING';
 }
 
 export interface ICreateCourseProgress extends IBaseCourseProgress, Document {}

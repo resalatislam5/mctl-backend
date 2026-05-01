@@ -138,6 +138,14 @@ const findSingle = async (
         },
       },
       {
+        $lookup: {
+          from: 'accounts',
+          localField: 'acc_id',
+          foreignField: '_id',
+          as: 'account',
+        },
+      },
+      {
         $addFields: {
           student_name: {
             $ifNull: [{ $arrayElemAt: ['$student.name', 0] }, null],
@@ -154,12 +162,16 @@ const findSingle = async (
           course_type: {
             $ifNull: [{ $arrayElemAt: ['$enrollment.course_type', 0] }, null],
           },
+          acc_name: {
+            $ifNull: [{ $arrayElemAt: ['$account.name', 0] }, null],
+          },
         },
       },
       {
         $project: {
           student: 0,
           enrollment: 0,
+          account: 0,
         },
       },
     ]);
