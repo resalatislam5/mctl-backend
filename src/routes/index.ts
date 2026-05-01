@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import dashboardController from '../api/v1/dashboard/dashboard.controller';
 import accountRoutes from './accountRoutes';
 import agentCommissionRoutes from './agentCommissionRoutes';
 import agentRoutes from './agentRoutes';
@@ -26,8 +27,10 @@ import roleRoutes from './roleRoutes';
 import studentRoutes from './studentRoutes';
 import upazilaRoutes from './upazilaRoutes';
 import userRoutes from './userRoutes';
+import dashboardRoutes from './dashboardRoutes';
 
 const router: Router = Router();
+router.use('/v1/dashboard', dashboardRoutes);
 router.use('/v1/config/user', userRoutes);
 router.use('/v1/config/country', countryRoutes);
 router.use('/v1/config/division', divisionRoutes);

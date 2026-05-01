@@ -1,4 +1,4 @@
-import { ClientSession, Types } from 'mongoose';
+import { ClientSession, PipelineStage, Types } from 'mongoose';
 import { customError } from '../../../utils/customError';
 import { IAgentFindAllParams, IAgentList } from './agent.dto';
 import Agent from './agent.model';
@@ -108,5 +108,16 @@ const count = ({ search, status, tenant_id }: IAgentFindAllParams) => {
 
   return Agent.countDocuments(query);
 };
+const aggregate = async (pipeline: PipelineStage[]) => {
+  return Agent.aggregate(pipeline);
+};
 
-export default { findAll, findOne, create, update, deleteItem, count };
+export default {
+  findAll,
+  findOne,
+  create,
+  update,
+  deleteItem,
+  count,
+  aggregate,
+};
