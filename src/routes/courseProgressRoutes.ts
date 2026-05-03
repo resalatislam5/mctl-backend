@@ -33,6 +33,12 @@ const courseProgressRoutes: Router = Router()
     authenticate,
     checkPermissionMiddleware('COURSE_PROGRESS', 'can_delete'),
     courseProgressController.deleteItem,
+  )
+  .patch(
+    '/:_id/status',
+    authenticate,
+    checkPermissionMiddleware('COURSE_PROGRESS', 'can_update'),
+    courseProgressController.updateStatus,
   );
 
 export default courseProgressRoutes;

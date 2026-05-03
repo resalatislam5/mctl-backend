@@ -7,6 +7,7 @@ import auditLogService from '../auditLog/auditLog.service';
 import { convertObjectID } from './../../../utils/ConvertObjectID';
 import { ICourseProgressList } from './courseProgress.dto';
 import courseProgressService from './courseProgress.service';
+import { withTransaction } from '../../../utils/withTransaction';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const query: any = { tenant_id: req.user?.tenant_id };
@@ -287,6 +288,63 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
+const updateStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { _id } = req.params;
+  const { status } = req.body;
+
+  try {
+    checkMongooseId(_id as string);
+    const findSingle = await courseProgressService.findOne({
+      _id: convertObjectID(_id as string),
+      tenant_id: req.user?.tenant_id,
+    });
+    if (!findSingle) {
+      return customError('Course Progress not found', 404);
+    }
+
+    if (findSingle?.status === 'COMPLETED') {
+      return customError('Course Progress is already completed', 400);
+    }
+
+    const data = await withTransaction(async (session) => {
+      const data = await courseProgressService.update({
+        _id: convertObjectID(_id as string),
+        tenant_id: req.user?.tenant_id,
+        data: {
+          status,
+        },
+        session,
+      });
+
+      await auditLogService.create(
+        {
+          req,
+          user: req.user,
+          action: 'UPDATE',
+          entity: 'CourseProgress',
+          entity_id: findSingle._id,
+          changes: status,
+          description: `A new Course Progress has been updated course_progress_id: ${_id}`,
+        },
+        session,
+      );
+      return data;
+    });
+
+    res.json({
+      success: true,
+      message: 'Course Progress status updated successfully',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
@@ -331,4 +389,5 @@ export default {
   findSingle,
   update,
   deleteItem,
+  updateStatus,
 };

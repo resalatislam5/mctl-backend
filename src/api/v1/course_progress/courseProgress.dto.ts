@@ -1,5 +1,15 @@
 import { Document, Types } from 'mongoose';
 
+export type CertificateStatusType =
+  | 'REQUESTED'
+  | 'ISSUED_BY_BOARD'
+  | 'PRINTED'
+  | null;
+export type CompletionStatusType =
+  | 'ONGOING'
+  | 'COMPLETED'
+  | 'ABSENT'
+  | 'CANCELLED';
 export interface IBaseCourseProgress {
   student_id: Types.ObjectId;
   enrollment_id: Types.ObjectId;
@@ -7,10 +17,14 @@ export interface IBaseCourseProgress {
   tenant_id: Types.ObjectId;
   courses: {
     course_id: Types.ObjectId;
-    status: 'YES' | 'NO';
-    soft_copy: 'YES' | 'NO';
+    certificate_no?: string | null;
+    delivery_date?: string | null;
+    certificate_status?: CertificateStatusType;
+    doll_card_status?: CertificateStatusType;
+    delivery_status?: 'ONLINE_COPY' | 'HARD_COPY' | null;
+    completion_status?: CompletionStatusType;
   }[];
-  // status: 'COMPLETED' | 'ABSENT' | 'ON_GOING';
+  status?: 'COMPLETED' | 'ONGOING';
 }
 
 export interface ICreateCourseProgress extends IBaseCourseProgress, Document {}

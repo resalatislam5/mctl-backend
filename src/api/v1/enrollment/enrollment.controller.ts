@@ -11,6 +11,11 @@ import { IEnrollmentList } from './enrollment.dto';
 import enrollmentService from './enrollment.service';
 import { withTransaction } from '../../../utils/withTransaction';
 import courseProgressService from '../course_progress/courseProgress.service';
+import moneyReceiptService from '../money_receipt/moneyReceipt.service';
+import {
+  CertificateStatusType,
+  CompletionStatusType,
+} from '../course_progress/courseProgress.dto';
 
 const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const query: any = { tenant_id: req.user?.tenant_id };
@@ -429,13 +434,24 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         if (findCourseProgress) {
           const existingCoursesMap = new Map<
             string,
-            { status: 'YES' | 'NO'; soft_copy: 'YES' | 'NO' }
+            {
+              certificate_no?: string | null;
+              delivery_date?: string | null;
+              certificate_status?: CertificateStatusType;
+              doll_card_status?: CertificateStatusType;
+              delivery_status?: 'ONLINE_COPY' | 'HARD_COPY' | null;
+              completion_status: CompletionStatusType;
+            }
           >();
 
           findCourseProgress.courses.forEach((c) => {
             existingCoursesMap.set(c.course_id.toString(), {
-              status: c.status,
-              soft_copy: c.soft_copy,
+              certificate_no: c.certificate_no || null,
+              delivery_date: c.delivery_date || null,
+              certificate_status: c.certificate_status || null,
+              doll_card_status: c.doll_card_status || null,
+              delivery_status: c.delivery_status || null,
+              completion_status: c.completion_status || 'ONGOING',
             });
           });
 
@@ -444,8 +460,12 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
               const existing = existingCoursesMap.get(item.toString());
               return {
                 course_id: item,
-                status: existing?.status || 'NO',
-                soft_copy: existing?.soft_copy || 'NO',
+                certificate_no: existing?.certificate_no || null,
+                delivery_date: existing?.delivery_date || null,
+                certificate_status: existing?.certificate_status || null,
+                doll_card_status: existing?.doll_card_status || null,
+                delivery_status: existing?.delivery_status || null,
+                completion_status: existing?.completion_status || 'ONGOING',
               };
             }) || [];
 
@@ -539,8 +559,6 @@ const updateStatus = async (
             tenant_id: req.user?.tenant_id,
             courses: findSingle?.course_ids?.map((item) => ({
               course_id: item,
-              status: 'NO',
-              soft_copy: 'NO',
             })),
             enrollment_id: findSingle?._id,
           },
@@ -565,28 +583,56 @@ const deleteItem = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     checkMongooseId(_id as string);
+    await withTransaction(async (session) => {
+      const findSingle = await enrollmentService
+        .findOne({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
+      if (!findSingle) {
+        return customError('Enrollment not found', 404);
+      }
+      if (findSingle?.status === 'APPROVED') {
+        return customError('Enrollment is already approved', 400);
+      }
+      const moneyReceipt = await moneyReceiptService
+        .findOne({
+          enrollment_id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
 
-    const findSingle = await enrollmentService.findOne({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-    });
-    if (!findSingle) {
-      return customError('Enrollment not found', 404);
-    }
+      if (moneyReceipt) {
+        return customError('Enrollment has money receipt', 400);
+      }
 
-    await enrollmentService.deleteItem({
-      _id: convertObjectID(_id as string),
-      tenant_id: req.user?.tenant_id,
-    });
+      await enrollmentService
+        .deleteItem({
+          _id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
 
-    await auditLogService.create({
-      req,
-      user: req.user,
-      action: 'DELETE',
-      entity: 'Enrollment',
-      entity_id: findSingle._id,
-      changes: findSingle,
-      description: `A new Enrollment has been deleted Enrollment_id: ${_id}`,
+      await courseProgressService
+        .deleteItem({
+          enrollment_id: convertObjectID(_id as string),
+          tenant_id: req.user?.tenant_id,
+        })
+        .session(session);
+
+      await auditLogService.create(
+        {
+          req,
+          user: req.user,
+          action: 'DELETE',
+          entity: 'Enrollment',
+          entity_id: findSingle._id,
+          changes: findSingle,
+          description: `A new Enrollment has been deleted Enrollment_id: ${_id}`,
+        },
+        session,
+      );
     });
 
     res.json({

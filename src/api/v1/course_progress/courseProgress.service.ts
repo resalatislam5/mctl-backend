@@ -75,12 +75,22 @@ const update = ({
 
 const deleteItem = ({
   _id,
+  enrollment_id,
   tenant_id,
 }: {
-  _id: Types.ObjectId;
+  _id?: Types.ObjectId;
+  enrollment_id?: Types.ObjectId;
   tenant_id: Types.ObjectId;
 }) => {
-  return CourseProgress.findOneAndDelete({ _id, tenant_id });
+  const query: any = { tenant_id };
+
+  if (_id) {
+    query._id = _id;
+  }
+  if (enrollment_id) {
+    query.enrollment_id = enrollment_id;
+  }
+  return CourseProgress.findOneAndDelete(query);
 };
 
 const count = ({
