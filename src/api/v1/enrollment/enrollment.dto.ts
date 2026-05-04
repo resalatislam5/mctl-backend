@@ -24,7 +24,7 @@ export interface IBaseEnrollment {
   meal_accommodation: number;
   discount: number;
   additional_discount: number;
-  installment_date: { name: string; date: Date }[];
+  installments: { name: string; date: Date; amount: number }[];
   status: IEnrollmentStatus;
 }
 export interface ICreateEnrollment extends IBaseEnrollment, Document {}

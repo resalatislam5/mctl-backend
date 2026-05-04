@@ -270,9 +270,8 @@ const upcomingInstallments = async (
       throw customError('Invalid date range', 400);
     }
 
-    // FIX: use $elemMatch to correctly search inside the installment_date array
     const query: any = {
-      installment_date: {
+      installments: {
         $elemMatch: {
           date: dateRange,
         },
@@ -295,7 +294,7 @@ const upcomingInstallments = async (
         $addFields: {
           matched_installments: {
             $filter: {
-              input: '$installment_date',
+              input: '$installments',
               as: 'item',
               cond: {
                 $and: [
@@ -318,7 +317,7 @@ const upcomingInstallments = async (
           data: [
             {
               $project: {
-                installment_date: 1,
+                installments: 1,
                 admission_date: 1,
                 matched_installments: 1,
                 total_amount: 1,

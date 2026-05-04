@@ -63,10 +63,11 @@ const EnrollmentSchema = new Schema<ICreateEnrollment>(
     discount: { type: Number, default: 0 },
     additional_discount: { type: Number, default: 0 },
 
-    installment_date: [
+    installments: [
       {
         name: { type: String },
         date: { type: Date },
+        amount: { type: Number },
         _id: false,
       },
     ],
