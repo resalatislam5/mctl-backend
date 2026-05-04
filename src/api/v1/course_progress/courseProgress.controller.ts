@@ -16,6 +16,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   const batch_id = req.query.batch_id?.toString() || '';
   const enrollment_id = req.query.enrollment_id?.toString() || '';
   const course_id = req.query.course_id?.toString() || '';
+  const status = req.query.status?.toString() || '';
   const limit = Number(req.query.limit || 100);
   const skip = Number(req.query.skip || 0);
 
@@ -27,6 +28,9 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
   }
   if (enrollment_id) {
     query.enrollment_id = convertObjectID(enrollment_id);
+  }
+  if (status) {
+    query.status = status;
   }
 
   const searchMatch = search
@@ -111,6 +115,7 @@ const findAll = async (req: Request, res: Response, next: NextFunction) => {
                 student_code: 1,
                 batch_no: 1,
                 enrollment_code: 1,
+                status: 1,
               },
             },
           ],

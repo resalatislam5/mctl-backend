@@ -484,8 +484,6 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
               tenant_id: req.user?.tenant_id,
               courses: findSingle?.course_ids?.map((item) => ({
                 course_id: item,
-                status: 'NO',
-                soft_copy: 'NO',
               })),
               enrollment_id: findSingle?._id,
             },
